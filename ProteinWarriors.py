@@ -42,7 +42,7 @@ blue = (0,0,255)
 
 DEFAULT_RADIUS = 15
 DEFAULT_WARRIOR_RADIUS = 20
-NUMBER_OF_FOOD = 5
+NUMBER_OF_FOOD = 20
 NUMBER_OF_WARRIORS = 4
 
 
@@ -81,50 +81,50 @@ def write_score(count):
 	gameDisplay.blit(text, (10, 10))
 
 
-def draw_food(food_entity):
-	pygame.draw.circle(gameDisplay, food_entity.colour, [food_entity.x, food_entity.y], food_entity.radius, 0)
+def draw_food(food):
+	pygame.draw.circle(gameDisplay, food.colour, [food.x, food.y], food.radius, 0)
 
 # also writes score next to the center of the circle
-def draw_warrior(warrior_entity):
-	pygame.draw.circle(gameDisplay, warrior_entity.colour, [warrior_entity.x, warrior_entity.y], warrior_entity.radius, 0)
+def draw_warrior(war):
+	pygame.draw.circle(gameDisplay, war.colour, [war.x, war.y], war.radius, 0)
 	font = pygame.font.SysFont(None, 20)
-	text = font.render(f"Score: {warrior_entity.score}", True, white)
-	gameDisplay.blit(text, (warrior_entity.x, warrior_entity.y))
+	text = font.render(f"Score: {war.score}", True, white)
+	gameDisplay.blit(text, (war.x, war.y))
 
 # this only affects out warrior, 
 # if the player leaves the area, the game ends
-def leaving_boundaries(our_warrior):
-	if our_warrior.x > display_width - our_warrior.radius or our_warrior.x - our_warrior.radius < 0 \
-		or our_warrior.y > display_height - our_warrior.radius or our_warrior.y - our_warrior.radius < 0:
+def leaving_boundaries(our_war):
+	if our_war.x > display_width - our_war.radius or our_war.x - our_war.radius < 0 \
+		or our_war.y > display_height - our_war.radius or our_war.y - our_war.radius < 0:
 			return True
 	return False
 
 ## TODO: change if others dissagree
-## causes flickering, needs fixing
+## causes flickering, because the movement is erratic, needs fixing
 # current idea is something similar to snake game. Leaving one side puts you on the other
-def warrior_boundaries(warrior_entity):
-	if warrior_entity.x > display_width - warrior_entity.radius:
-		warrior_entity.x = warrior_entity.x - display_width
-	elif warrior_entity.x - warrior_entity.radius < 0:
-		warrior_entity.x = display_width + warrior_entity.x
+def warrior_boundaries(war):
+	if war.x > display_width - war.radius:
+		war.x -= display_width
+	elif war.x - war.radius < 0:
+		war.x += display_width
 
-	if warrior_entity.y > display_height - warrior_entity.radius:
-		warrior_entity.y = warrior_entity.y - display_height
-	elif warrior_entity.y - warrior_entity.radius < 0:
-		warrior_entity.y = display_height + warrior_entity.y
+	if war.y > display_height - war.radius:
+		war.y -= display_height
+	elif war.y - war.radius < 0:
+		war.y += display_height
 
 
 # checking if food and warrior are in contact with eachother with respect to their radiuses
-def check_crossover(food, warrior):
+def check_crossover(food, war):
 	# first check x crossover
-	if ((warrior.x + warrior.radius) > (food.x - food.radius) and (warrior.x + warrior.radius) < (food.x + food.radius)) \
-		or ((warrior.x - warrior.radius) > (food.x - food.radius) and ((warrior.x - warrior.radius) < (food.x + food.radius))) \
-		or (food.x > (warrior.x - warrior.radius) and food.x < (warrior.x + warrior.radius)):
+	if ((war.x + war.radius) > (food.x - food.radius) and (war.x + war.radius) < (food.x + food.radius)) \
+		or ((war.x - war.radius) > (food.x - food.radius) and ((war.x - war.radius) < (food.x + food.radius))) \
+		or (food.x > (war.x - war.radius) and food.x < (war.x + war.radius)):
 
 			# also check y crossover
-			if ((warrior.y + warrior.radius) > (food.y - food.radius) and (warrior.y + warrior.radius) < (food.y + food.radius)) \
-				or ((warrior.y - warrior.radius) > (food.y - food.radius) and ((warrior.y - warrior.radius) < (food.y + food.radius))) \
-				or (food.y > (warrior.y - warrior.radius) and food.y < (warrior.y + warrior.radius)):
+			if ((war.y + war.radius) > (food.y - food.radius) and (war.y + war.radius) < (food.y + food.radius)) \
+				or ((war.y - war.radius) > (food.y - food.radius) and ((war.y - war.radius) < (food.y + food.radius))) \
+				or (food.y > (war.y - war.radius) and food.y < (war.y + war.radius)):
 					return True
 
 	return False
@@ -188,11 +188,14 @@ def game_loop():
 		crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in temporary_warriors_with_ours]
 		for pair in crossovers_to_check:
 			if check_crossover(*pair):
-				print(f'>>>> food x and y crossover at {pair[0].x},{pair[0].y} <<<<')
-				pair[1].score += 1
-				pair[1].increase_size()
+				try:
+					food.remove(pair[0])
+					print(f'>>>> food x and y crossover at {pair[0].x},{pair[0].y} <<<<')
+					pair[1].score += 1
+					pair[1].increase_size()
 
-				food.remove(pair[0])
+				except:
+					pass
 
 
 		################## drawing the simulation
@@ -229,9 +232,9 @@ def game_loop():
 			food.append(food_ent)
 
 
-		
+
 		pygame.display.update()
-		clock.tick(20)
+		clock.tick(60)
 
 
 game_loop()
