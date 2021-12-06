@@ -42,7 +42,7 @@ blue = (0,0,255)
 
 DEFAULT_RADIUS = 15
 DEFAULT_WARRIOR_RADIUS = 20
-NUMBER_OF_FOOD = 20
+NUMBER_OF_FOOD = 5
 NUMBER_OF_WARRIORS = 4
 
 
@@ -178,14 +178,14 @@ def game_loop():
 			gameExit = True
 		
 
-		temporary_warriors_with_ours = warriors[:]
-		temporary_warriors_with_ours.append(our_warrior)
+		temp_wars_with_ours = warriors[:]
+		temp_wars_with_ours.append(our_warrior)
 
 
 		## TODO: fix bug when two warriors eat the same food in the same frame 
 		## only happens when two warriors become really big
 		## (iterate over remaining pairs with the same food and remove pairs)
-		crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in temporary_warriors_with_ours]
+		crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in temp_wars_with_ours]
 		for pair in crossovers_to_check:
 			if check_crossover(*pair):
 				try:
@@ -234,7 +234,7 @@ def game_loop():
 
 
 		pygame.display.update()
-		clock.tick(60)
+		clock.tick(20)
 
 
 game_loop()
