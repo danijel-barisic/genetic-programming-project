@@ -1,139 +1,103 @@
+from Algorithm import Algorithm
+from random import random, randrange
 from math import sqrt
-from random import randrange, random
 from copy import deepcopy
 
-# constants
-POPULATION_SIZE = 10
-POPULATION_CUTOFF = int(POPULATION_SIZE / 2)
-POPULATION_CROSSOVER = int(POPULATION_SIZE / 4)
-POPULATION_BEST_MUTATION = POPULATION_SIZE - POPULATION_CUTOFF - POPULATION_CROSSOVER
-POPULATION_FILL = POPULATION_SIZE - POPULATION_CUTOFF
-FUNCTION_ARGUMENT_COUNT = 3
-VARIABLE_NAMES = {0 : "x", 1 : "y", 2 : "z", 3 : "w", 4 : "q"}
-SPACE = "."
-LEAF_CHANCE = 0.7
-CONST_LEAF_CHANCE = 0
-NODE_CHANCE = 1 - LEAF_CHANCE - CONST_LEAF_CHANCE
-CROSSOVER_SWAP_CHANCE = 0.5
-RESULT_CHOOSE_CHANCE = 0.6
-COMPONENT_CHOOSE_CHANCE = 0.5
-MUTATE_NODE_OR_CHILD_CHANCE = 0.6
-FUNCTION_CHECK_ABS_VALUE = 2
-MUTATE_COUNT = 10
-BEST_MUTATE_COUNT = 5
-GENERATION_PRINT_GAP = 50
+LEAF_CHANCE = 0.4
+CONST_LEAF_CHANCE = 0.1
+CONST_LEAF_RANGE = 10
+A = 1
+B = 10
+MUTATION_CHANCE = 0.1
+MUTATE_THIS_NODE_CHANCE = 0.5
+CHOOSE_THIS_NODE_CHANCE = 0.5
+RESULT_CHOOSE_CHANCE = 0.5
 
-# abstract class serving as base for every type of node
 class AbsNode():
     def __lt__(self, other):
         return self
 
-# abstract class serving as base for every type of leaf
 class AbsLeaf(AbsNode):
     pass
 
-# class for modeling variable leaves
 class Leaf(AbsLeaf):
-    def __init__(self):
-        self.input_index = randrange(gp.input_count)
+    def __init__(self, unit):
+        self.unit = unit
+        self.input_index = randrange(unit.input_count)
         self.value = None
     def evaluate(self):
-        self.value = gp.inputs[self.input_index]
-    def print(self, spaces):
-        print(f"{spaces * SPACE}{VARIABLE_NAMES[self.input_index]}")
+        self.value = self.unit.input_values[self.input_index]
 
-# class for modeling constant leaves
 class ConstLeaf(AbsLeaf):
-    def __init__(self):
-        self.value = randrange(-10, 11)
+    def __init__(self, unit):
+        self.unit = unit
+        self.value = randrange(-CONST_LEAF_RANGE, CONST_LEAF_RANGE + 1)
     def evaluate(self):
         pass
-    def print(self, spaces):
-        print(f"{spaces * SPACE}{self.value}")
 
-# class for modeling operator + nodes
 class Plus(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 2
         self.value = None
     def evaluate(self):
         for subtree in self.subtrees:
             subtree.evaluate()
-        x, y = self.subtrees[0].value, self.subtrees[1].value
+        x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x + y
-    def print(self, spaces):
-        print(f"{spaces * SPACE}PLUS (+)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
 
-# class for modeling binary operator - nodes
 class Minus(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 2
         self.value = None
     def evaluate(self):
         for subtree in self.subtrees:
             subtree.evaluate()
-        x, y = self.subtrees[0].value, self.subtrees[1].value
+        x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x - y
-    def print(self, spaces):
-        print(f"{spaces * SPACE}MINUS (-)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
 
-# class for modeling operator * nodes
 class Times(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 2
         self.value = None
     def evaluate(self):
         for subtree in self.subtrees:
             subtree.evaluate()
-        x, y = self.subtrees[0].value, self.subtrees[1].value
+        x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x * y
-    def print(self, spaces):
-        print(f"{spaces * SPACE}TIMES (*)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
 
-# class for modeling operator / nodes
 class Divide(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 2
         self.value = None
     def evaluate(self):
         for subtree in self.subtrees:
             subtree.evaluate()
-        x, y = self.subtrees[0].value, self.subtrees[1].value
-        self.value = x / y if y != 0 else 0
-    def print(self, spaces):
-        print(f"{spaces * SPACE}DIVIDE (/)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
+        x,y = self.subtrees[0].value, self.subtrees[1].value
+        self.value = x / y if abs(y) >= 1 else x
 
-# class for modeling operator % nodes
 class Modulo(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 2
         self.value = None
     def evaluate(self):
         for subtree in self.subtrees:
             subtree.evaluate()
-        x, y = self.subtrees[0].value, self.subtrees[1].value
-        self.value = x % y if y != 0 else 0
-    def print(self, spaces):
-        print(f"{spaces * SPACE}MODULO (%)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
+        x,y = self.subtrees[0].value, self.subtrees[1].value
+        self.value = x % y if abs(y) >= 1 else x
 
-# class for modeling unary operator - nodes
 class Negation(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 1
         self.value = None
@@ -142,14 +106,10 @@ class Negation(AbsNode):
             subtree.evaluate()
         x = self.subtrees[0].value
         self.value = -x
-    def print(self, spaces):
-        print(f"{spaces * SPACE}NEGATION (UNARY -)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
 
-# class for modeling square operation nodes
 class Square(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 1
         self.value = None
@@ -158,14 +118,10 @@ class Square(AbsNode):
             subtree.evaluate()
         x = self.subtrees[0].value
         self.value = x**2
-    def print(self, spaces):
-        print(f"{spaces * SPACE}SQUARE (^2)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
 
-# class for modeling square root operation nodes
 class Root(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 1
         self.value = None
@@ -174,14 +130,10 @@ class Root(AbsNode):
             subtree.evaluate()
         x = self.subtrees[0].value
         self.value = sqrt(x) if x >= 0 else sqrt(-x)
-    def print(self, spaces):
-        print(f"{spaces * SPACE}SQUARE_ROOT (sqrt)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
 
-# class for modeling branching
 class Branch(AbsNode):
-    def __init__(self):
+    def __init__(self, unit):
+        self.unit = unit
         self.subtrees = []
         self.children_count = 4
         self.value = None
@@ -189,20 +141,38 @@ class Branch(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x, y, z, w = self.subtrees[0].value, self.subtrees[1].value, self.subtrees[2].value, self.subtrees[3].value
-        self.value = z if x > y else w
-    def print(self, spaces):
-        print(f"{spaces * SPACE}BRANCH (? :)")
-        for subtree in self.subtrees:
-            subtree.print(spaces + 1)
+        self.value = z if x < y else w
 
-# central class in algorithm
-class GP:
-    def __init__(self, input_count):
+class Unit:
+    def __init__(self, input_count, output_count, gp, create_tree = True):
         self.input_count = input_count
-        self.inputs = {}
-        for i in range(input_count):
-            self.inputs[i] = None
-        self.population = []
+        self.output_count = output_count
+        self.inputs_values = []
+        self.output_values = []
+        self.fitness = 0
+        self.gp = gp
+        self.trees = []
+        if create_tree:
+            for _ in range(self.output_count):
+                self.trees.append(self.create_tree())
+
+    def create_tree(self):
+        chance = random()
+        if chance < LEAF_CHANCE:
+            return Leaf(self)
+        elif chance < LEAF_CHANCE + CONST_LEAF_CHANCE:
+            return ConstLeaf(self)
+        else:
+            rand = randrange(len(self.gp.node_dict))
+            node = self.gp.node_dict[rand](self)
+            for _ in range(node.children_count):
+                child = self.create_tree()
+                node.subtrees.append(child)
+            return node
+
+class GP(Algorithm):
+    def __init__(self, input_count, output_count, population_size):
+        Algorithm.__init__(self, input_count, output_count, population_size)
         self.node_dict = {
             0 : Plus,
             1 : Minus,
@@ -215,129 +185,144 @@ class GP:
             8 : Branch
         }
 
-    def create_population(self):
-        for _ in range(POPULATION_SIZE):
-            node = self.create_unit()
-            self.population.append(node)
+    def calculate_values(self, unit, inputs):
+        if len(inputs) != self.input_count:
+            raise Exception
 
-    def create_unit(self):
-        chance = random()
-        if chance < LEAF_CHANCE:
-            return Leaf()
-        elif chance < LEAF_CHANCE + CONST_LEAF_CHANCE:
-            return ConstLeaf()
-        else:
-            rand = randrange(len(gp.node_dict))
-            node = gp.node_dict[rand]()
-            for _ in range(node.children_count):
-                child = self.create_unit()
-                node.subtrees.append(child)
-            return node
+        unit.input_values = []
+        unit.output_values = []
+        for input in inputs:
+            unit.input_values.append(input)
+
+        for tree in unit.trees:
+            tree.evaluate()
+            unit.output_values.append(tree.value)
+
+        return tuple(unit.output_values)
+
+    def create_population(self):
+        population = []
+        for _ in range(self.population_size):
+            population.append(Unit(self.input_count, self.output_count, self))
+        return population
+
+    def evolve_population(self, population):
+        objects = [[unit.fitness, unit] for unit in population]
+        objects.sort()
+
+        min_fitness = objects[0][0]
+        max_fitness = objects[-1][0]
+
+        for object in objects:
+            object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
+
+        temp = 0
+
+        for object in objects:
+            x = object[0]
+            object[0] += temp
+            temp += x
+
+        population = []
+
+        for _ in range(self.population_size):
+
+            unit1 = None
+            unit2 = None
+
+            r1 = random() * objects[-1][0]
+            r2 = random() * objects[-1][0]
+
+            index1 = 0
+            index2 = 0
+
+            while r1 > objects[index1][0]:
+                index1 += 1
+
+            while r2 > objects[index2][0]:
+                index2 += 1
+
+            unit1 = objects[index1][1]
+            unit2 = objects[index2][1]
+
+            population.append(self.crossover(unit1, unit2))
+
+        for unit in population:
+            if random() < MUTATION_CHANCE:
+                tree_index = randrange(unit.output_count)
+                self.mutate(unit, unit.trees[tree_index])
+                unit.trees[tree_index] = self.mutate(unit, unit.trees[tree_index])
+
+        return population
 
     def crossover(self, unit1, unit2):
-        if random() < CROSSOVER_SWAP_CHANCE:
-            unit1, unit2 = unit2, unit1
+        
+        unit = Unit(self.input_count, self.output_count, self, create_tree=False)
 
-        component = deepcopy(gp.choose_node_component(unit2))
+        for i in range(unit.output_count):
 
-        if isinstance(unit1, AbsLeaf):
-            result = component
+            tree1 = unit1.trees[i]
+            tree2 = unit2.trees[i]
 
-        else:
-            result, index = gp.choose_node_result(unit1)
-            result = deepcopy(result)
-            result.subtrees[index] = component
+            if random() < 0.5:
+                tree1, tree2 = tree2, tree1
 
-        return result
+            tree2_component = deepcopy(self.choose_node_for_component(tree2))
 
-    def choose_node_result(self, unit):
-        index = randrange(unit.children_count)
-        if random() < RESULT_CHOOSE_CHANCE or isinstance(unit.subtrees[index], AbsLeaf):
-            return unit, index
-        else:
-            return self.choose_node_result(unit.subtrees[index])
+            tree1_result = None
 
-    def choose_node_component(self, unit):
-        if isinstance(unit, Leaf) or isinstance(unit, ConstLeaf):
-            return unit
+            if isinstance(tree1, AbsLeaf):
+                tree1_result = tree2_component
 
-        else:
-            chance = random()
-            if chance < COMPONENT_CHOOSE_CHANCE:
-                return unit
             else:
-                child_to_choose = randrange(unit.children_count)
-                return self.choose_node_component(unit.subtrees[child_to_choose])
+                tree1_result = self.mutate_and_create_result(deepcopy(tree1), tree2_component)
 
-    def mutate(self, unit):
-
-        if isinstance(unit, AbsLeaf):
-            unit = self.create_unit()
-
-        else:
-            chance = random()
-            if chance < MUTATE_NODE_OR_CHILD_CHANCE:
-                unit = self.create_unit()
-            else:
-                child_to_mutate = randrange(unit.children_count)
-                unit.subtrees[child_to_mutate] = self.mutate(unit.subtrees[child_to_mutate])
+            unit.trees.append(tree1_result)
+        
+        for tree in unit.trees:
+            self.set_unit_object_in_tree(unit, tree)
 
         return unit
 
-# global variables
-gp = GP(FUNCTION_ARGUMENT_COUNT)
-f = lambda x, y, z : z - x * y - z * x
+    def choose_node_for_component(self, tree):
+        if isinstance(tree, AbsLeaf):
+            return tree
 
-if __name__ == "__main__":
+        else:
+            chance = random()
+            if chance < CHOOSE_THIS_NODE_CHANCE:
+                return tree
+            else:
+                sub_node_to_choose = randrange(tree.children_count)
+                return self.choose_node_for_component(tree.subtrees[sub_node_to_choose])
 
-    gp.create_population()
+    def mutate_and_create_result(self, tree, new_subtree):
+        sub_node_index = randrange(tree.children_count)
+        if random() < RESULT_CHOOSE_CHANCE or isinstance(tree.subtrees[sub_node_index], AbsLeaf):
+            tree.subtrees[sub_node_index] = new_subtree
 
-    generation = 0
-    solution = None
+        else:
+            tree.subtrees[sub_node_index] = self.mutate_and_create_result(tree.subtrees[sub_node_index], new_subtree)
+        
+        return tree
 
-    while True:
-        generation += 1
-        p = []
-        for x in range(len(gp.population)):
-            unit = gp.population[x]
-            error = 0
-            for i in range(-FUNCTION_CHECK_ABS_VALUE, FUNCTION_CHECK_ABS_VALUE + 1):
-                for j in range(-FUNCTION_CHECK_ABS_VALUE, FUNCTION_CHECK_ABS_VALUE + 1):
-                    for k in range(-FUNCTION_CHECK_ABS_VALUE, FUNCTION_CHECK_ABS_VALUE + 1):
-                        gp.inputs[0], gp.inputs[1], gp.inputs[2] = i, j, k
-                        unit.evaluate()
-                        error += abs(f(i,j,k) - unit.value)
+    def mutate(self, unit, tree):
 
-            p.append([error, unit])
+        if isinstance(tree, AbsLeaf):
+            tree = unit.create_tree()
 
-        p.sort()
+        else:
+            chance = random()
+            if chance < MUTATE_THIS_NODE_CHANCE:
+                tree = unit.create_tree()
+            else:
+                tree_index = randrange(tree.children_count)
+                tree.subtrees[tree_index] = self.mutate(unit, tree.subtrees[tree_index])
 
-        if generation % GENERATION_PRINT_GAP == 0:
-            print(f'GENERATION {generation} : MIN ERROR {p[0][0]}')
+        return tree
 
-        if p[0][0] == 0:
-            solution = p[0][1]
-            break
-
-        p = p[:POPULATION_CUTOFF]
-        gp.population = [i[1] for i in p]
-
-        for _ in range(POPULATION_FILL):
-            unit1 = gp.population[randrange(POPULATION_CUTOFF)]
-            unit2 = gp.population[randrange(POPULATION_CUTOFF)]
-            gp.population.append(gp.crossover(unit1, unit2))
-
-        for _ in range(POPULATION_BEST_MUTATION):
-            unit = deepcopy(gp.population[0])
-            mutations = randrange(BEST_MUTATE_COUNT + 1)
-            for _ in range(mutations):
-                unit = gp.mutate(unit)
-            gp.population.append(unit)
-
-        for i in range(1, POPULATION_SIZE):
-            mutations = randrange(MUTATE_COUNT + 1)
-            for _ in range(mutations):
-                gp.population[i] = gp.mutate(gp.population[i])
-
-    print(f"\nGENERATION {generation}:")
-    solution.print(0)
+    def set_unit_object_in_tree(self, unit, tree):
+        tree.unit = unit
+        if not isinstance(tree, AbsLeaf):
+            for subtree in tree.subtrees:
+                self.set_unit_object_in_tree(unit, subtree)
