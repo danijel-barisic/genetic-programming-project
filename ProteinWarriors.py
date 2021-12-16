@@ -1,6 +1,6 @@
 import pygame
 import random
-
+import math
 
 class FoodEntity:
 	def __init__(self, x, y):
@@ -21,10 +21,12 @@ class WarriorEntity:
 		self.radius = DEFAULT_WARRIOR_RADIUS
 		self.score = 0
 		self.speed = 5
+		self.vision = self.radius + 30
 		#self.size = DEFAULT_SIZE
 
 	def increase_size(self):
 		self.radius += 20
+		self.vision = self.radius + 30
 
 	def __str__(self):
 		return f"Warrior location: {self.x},{self.y} - Score: {self.score}"
@@ -39,6 +41,8 @@ white = (255,255,255)
 red = (255,0,0)
 green = (0,255,0)
 blue = (0,0,255)
+
+PI = math.pi
 
 DEFAULT_RADIUS = 15
 DEFAULT_WARRIOR_RADIUS = 20
@@ -86,10 +90,19 @@ def draw_food(food):
 
 # also writes score next to the center of the circle
 def draw_warrior(war):
+
+	pygame.draw.circle(gameDisplay, blue, [war.x, war.y], war.vision, 0)
 	pygame.draw.circle(gameDisplay, war.colour, [war.x, war.y], war.radius, 0)
+
 	font = pygame.font.SysFont(None, 20)
 	text = font.render(f"Score: {war.score}", True, white)
 	gameDisplay.blit(text, (war.x, war.y))
+
+	# start of the vision field
+	#wRect = pygame.Rect(war.x-war.radius, war.y-war.radius, war.radius*2, war.radius*2)
+	#pygame.draw.rect(gameDisplay, white, wRect)
+	#pygame.draw.arc(gameDisplay, blue, wRect, PI/3, 2*PI/3)
+
 
 # this only affects out warrior, 
 # if the player leaves the area, the game ends
@@ -99,9 +112,8 @@ def leaving_boundaries(our_war):
 			return True
 	return False
 
-## TODO: change if others dissagree
-## causes flickering, because the movement is erratic, needs fixing
-# current idea is something similar to snake game. Leaving one side puts you on the other
+## causes flickering, but works well with bounds
+# leaving one side puts you on the other
 def warrior_boundaries(war):
 	if war.x > display_width - war.radius:
 		war.x -= display_width
@@ -112,6 +124,22 @@ def warrior_boundaries(war):
 		war.y -= display_height
 	elif war.y - war.radius < 0:
 		war.y += display_height
+
+
+# solves flickering by only checking if the center is over the edge
+## TODO: check_crossover2, currently the part of the radius wont eat the food that's on the other side of the edge
+## if it is inside the radius, only happens when the food is close to the edge and radius is large
+def warrior_boundaries2(war):
+	if war.x > display_width:
+		war.x -= display_width
+	elif war.x < 0:
+		war.x += display_width
+
+	if war.y > display_height:
+		war.y -= display_height
+	elif war.y < 0:
+		war.y += display_height
+
 
 
 # checking if food and warrior are in contact with eachother with respect to their radiuses
@@ -128,6 +156,14 @@ def check_crossover(food, war):
 					return True
 
 	return False
+
+
+def check_crossover2(food, war):
+	## TODO: if we are going to use warrior_boundaries2 func which moves x,y cords only if the center leaves the screen,
+	# then we have to take into account the part of the circle/radius which is already on the other side of the screen
+	# even if it is invisible
+
+	pass
 
 
 # moving our entity
@@ -167,6 +203,13 @@ def game_loop():
 	gameExit = False
 
 	while not gameExit:
+	# for i in range(200):
+	# 	if gameExit:
+	# 		return
+
+
+
+
 
 		################## checking all movements and warrior-food crossovers
 		x_change, y_change = check_movement(x_change, y_change)
@@ -177,25 +220,24 @@ def game_loop():
 		if leaving_boundaries(our_warrior):
 			gameExit = True
 		
-
+		# needed to check our with in the crossover function
 		temp_wars_with_ours = warriors[:]
 		temp_wars_with_ours.append(our_warrior)
 
-
-		## TODO: fix bug when two warriors eat the same food in the same frame 
-		## only happens when two warriors become really big
-		## (iterate over remaining pairs with the same food and remove pairs)
+		# check crossovers between each food and warrior
+		eaten_food = []
 		crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in temp_wars_with_ours]
 		for pair in crossovers_to_check:
 			if check_crossover(*pair):
-				try:
-					food.remove(pair[0])
-					print(f'>>>> food x and y crossover at {pair[0].x},{pair[0].y} <<<<')
-					pair[1].score += 1
-					pair[1].increase_size()
+				if pair[0] in eaten_food:
+					continue
 
-				except:
-					pass
+				eaten_food.append(pair[0])
+				food.remove(pair[0])
+				print(f'>>>> food x and y crossover at {pair[0].x},{pair[0].y} <<<<')
+
+				pair[1].score += 1
+				pair[1].increase_size()
 
 
 		################## drawing the simulation
@@ -215,8 +257,11 @@ def game_loop():
 				w.y += w.speed
 			else:
 				w.y -= w.speed
-			warrior_boundaries(w)
+
+			warrior_boundaries2(w)
 			draw_warrior(w)
+
+
 
 								
 		write_score(our_warrior.score)
@@ -234,7 +279,7 @@ def game_loop():
 
 
 		pygame.display.update()
-		clock.tick(20)
+		clock.tick(40)
 
 
 game_loop()
