@@ -1,7 +1,6 @@
 from Algorithm import Algorithm
 from random import random, randrange
 from math import sqrt
-from copy import deepcopy
 
 LEAF_CHANCE = 0.4
 CONST_LEAF_CHANCE = 0.1
@@ -27,6 +26,11 @@ class Leaf(AbsLeaf):
         self.value = None
     def evaluate(self):
         self.value = self.unit.input_values[self.input_index]
+    def copy(self):
+        ret_val = Leaf(self.unit)
+        ret_val.input_index = self.input_index
+        ret_val.value = None
+        return ret_val
 
 class ConstLeaf(AbsLeaf):
     def __init__(self, unit):
@@ -34,6 +38,10 @@ class ConstLeaf(AbsLeaf):
         self.value = randrange(-CONST_LEAF_RANGE, CONST_LEAF_RANGE + 1)
     def evaluate(self):
         pass
+    def copy(self):
+        ret_val = ConstLeaf(self.unit)
+        ret_val.value = self.value
+        return ret_val
 
 class Plus(AbsNode):
     def __init__(self, unit):
@@ -46,6 +54,14 @@ class Plus(AbsNode):
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x + y
+    def copy(self):
+        ret_val = Plus(self.unit)
+        self.children_count = 2
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Minus(AbsNode):
     def __init__(self, unit):
@@ -58,6 +74,14 @@ class Minus(AbsNode):
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x - y
+    def copy(self):
+        ret_val = Minus(self.unit)
+        self.children_count = 2
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Times(AbsNode):
     def __init__(self, unit):
@@ -70,6 +94,14 @@ class Times(AbsNode):
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x * y
+    def copy(self):
+        ret_val = Times(self.unit)
+        self.children_count = 2
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Divide(AbsNode):
     def __init__(self, unit):
@@ -82,6 +114,14 @@ class Divide(AbsNode):
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x / y if abs(y) >= 1 else x
+    def copy(self):
+        ret_val = Divide(self.unit)
+        self.children_count = 2
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Modulo(AbsNode):
     def __init__(self, unit):
@@ -94,6 +134,14 @@ class Modulo(AbsNode):
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
         self.value = x % y if abs(y) >= 1 else x
+    def copy(self):
+        ret_val = Modulo(self.unit)
+        self.children_count = 2
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Negation(AbsNode):
     def __init__(self, unit):
@@ -106,6 +154,14 @@ class Negation(AbsNode):
             subtree.evaluate()
         x = self.subtrees[0].value
         self.value = -x
+    def copy(self):
+        ret_val = Negation(self.unit)
+        self.children_count = 1
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Square(AbsNode):
     def __init__(self, unit):
@@ -118,6 +174,14 @@ class Square(AbsNode):
             subtree.evaluate()
         x = self.subtrees[0].value
         self.value = x**2
+    def copy(self):
+        ret_val = Square(self.unit)
+        self.children_count = 1
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Root(AbsNode):
     def __init__(self, unit):
@@ -130,6 +194,14 @@ class Root(AbsNode):
             subtree.evaluate()
         x = self.subtrees[0].value
         self.value = sqrt(x) if x >= 0 else sqrt(-x)
+    def copy(self):
+        ret_val = Root(self.unit)
+        self.children_count = 1
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Branch(AbsNode):
     def __init__(self, unit):
@@ -142,6 +214,14 @@ class Branch(AbsNode):
             subtree.evaluate()
         x, y, z, w = self.subtrees[0].value, self.subtrees[1].value, self.subtrees[2].value, self.subtrees[3].value
         self.value = z if x < y else w
+    def copy(self):
+        ret_val = Branch(self.unit)
+        self.children_count = 4
+        self.value = None
+        ret_val.subtrees = []
+        for subtree in self.subtrees:
+            ret_val.subtrees.append(subtree.copy())
+        return ret_val
 
 class Unit:
     def __init__(self, input_count, output_count, gp, create_tree = True):
@@ -267,7 +347,7 @@ class GP(Algorithm):
             if random() < 0.5:
                 tree1, tree2 = tree2, tree1
 
-            tree2_component = deepcopy(self.choose_node_for_component(tree2))
+            tree2_component = self.choose_node_for_component(tree2).copy()
 
             tree1_result = None
 
@@ -275,7 +355,8 @@ class GP(Algorithm):
                 tree1_result = tree2_component
 
             else:
-                tree1_result = self.mutate_and_create_result(deepcopy(tree1), tree2_component)
+                tree1_copy = tree1.copy()
+                tree1_result = self.mutate_and_create_result(tree1_copy, tree2_component)
 
             unit.trees.append(tree1_result)
         
