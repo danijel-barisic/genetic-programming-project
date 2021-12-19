@@ -1,0 +1,11 @@
+{
+    "LEAF_CHANCE": 0.4,
+    "CONST_LEAF_CHANCE": 0.1,
+    "CONST_LEAF_RANGE": 10,
+    "A": 1,
+    "B": 10,
+    "MUTATION_CHANCE": 0.1,
+    "MUTATE_THIS_NODE_CHANCE": 0.5,
+    "CHOOSE_THIS_NODE_CHANCE": 0.5,
+    "RESULT_CHOOSE_CHANCE": 0.5
+}

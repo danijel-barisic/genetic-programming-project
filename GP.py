@@ -1,16 +1,20 @@
 from Algorithm import Algorithm
 from random import random, randrange
 from math import sqrt
+import json
 
-LEAF_CHANCE = 0.4
-CONST_LEAF_CHANCE = 0.1
-CONST_LEAF_RANGE = 10
-A = 1
-B = 10
-MUTATION_CHANCE = 0.1
-MUTATE_THIS_NODE_CHANCE = 0.5
-CHOOSE_THIS_NODE_CHANCE = 0.5
-RESULT_CHOOSE_CHANCE = 0.5
+with open('./config.json') as f:
+    config = json.load(f)
+
+LEAF_CHANCE = config["LEAF_CHANCE"]
+CONST_LEAF_CHANCE = config["CONST_LEAF_CHANCE"]
+CONST_LEAF_RANGE = config["CONST_LEAF_RANGE"]
+A = config["A"]
+B = config["B"]
+MUTATION_CHANCE = config["MUTATION_CHANCE"]
+MUTATE_THIS_NODE_CHANCE = config["MUTATE_THIS_NODE_CHANCE"]
+CHOOSE_THIS_NODE_CHANCE = config["CHOOSE_THIS_NODE_CHANCE"]
+RESULT_CHOOSE_CHANCE = config["RESULT_CHOOSE_CHANCE"]
 
 class AbsNode():
     def __lt__(self, other):
