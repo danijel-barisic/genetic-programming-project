@@ -254,6 +254,9 @@ class Unit:
                 node.subtrees.append(child)
             return node
 
+    def __lt__(self, other):
+        return self
+
 class GP(Algorithm):
     def __init__(self, input_count, output_count, population_size):
         Algorithm.__init__(self, input_count, output_count, population_size)
@@ -297,15 +300,24 @@ class GP(Algorithm):
         min_fitness = objects[0][0]
         max_fitness = objects[-1][0]
 
-        for object in objects:
-            object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
+        if max_fitness != min_fitness:
 
-        temp = 0
+            for object in objects:
+                object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
 
-        for object in objects:
-            x = object[0]
-            object[0] += temp
-            temp += x
+            temp = 0
+
+            for object in objects:
+                x = object[0]
+                object[0] += temp
+                temp += x
+
+        else:
+
+            curr = 1
+            for object in objects:
+                objects[0] = curr
+                curr += 1
 
         population = []
 
