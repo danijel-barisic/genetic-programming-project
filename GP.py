@@ -316,7 +316,7 @@ class GP(Algorithm):
 
             curr = 1
             for object in objects:
-                objects[0] = curr
+                object[0] = curr
                 curr += 1
 
         population = []
