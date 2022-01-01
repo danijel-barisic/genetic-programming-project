@@ -1,15 +1,19 @@
 from math import sqrt
 from random import randrange, random
 from Algorithm import Algorithm
+import json
 
-OPERATOR_PARAMS = 3 # 2 input + 1 output
-MUTATION_CHANCE = 0.1
+with open('./config.json') as f:
+    config = json.load(f)
 
-LAYER_COUNT = 3
-LAYER_DEPTH = 4
+OPERATOR_PARAMS = config["OPERATOR_PARAMS"] # 2 input + 1 output
+MUTATION_CHANCE = config["MUTATION_CHANCE"]
 
-A = 1
-B = 10
+LAYER_COUNT = config["LAYER_COUNT"]
+LAYER_DEPTH = config["LAYER_DEPTH"]
+
+A = config["A"]
+B = config["B"]
 
 class Unit:
     def __init__(self, input_count, output_count, cgp, create_genome=True):
