@@ -68,18 +68,10 @@ MAXIMUM_SPEED 			= config["MAXIMUM_SPEED"]
 NUMBER_OF_TICKS = config["NUMBER_OF_TICKS"]
 TICK_SPEED 		= config["TICK_SPEED"]
 
-
-gp = GP(2, 2, NUMBER_OF_WARRIORS)
-angle_decoder = AngleDecoder()
-direction_decoder = DirectionDecoder()
-population = gp.create_population()
-
-
 pygame.init()
 gameDisplay = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 pygame.display.set_caption('Protein Warriors')
 clock = pygame.time.Clock()
-
 
 # writes generation and time passed in top left corner
 def write_time(gen, count):
@@ -198,8 +190,7 @@ def check_player_events(x_change, y_change):
 
 def game_loop():
 	global population
-	global gameDisplay
-
+	global gp
 	# starting values for our entity
 	# our_warrior_x = (DISPLAY_WIDTH * 0.45)
 	# our_warrior_y = (DISPLAY_HEIGHT * 0.8)
@@ -356,12 +347,17 @@ def game_loop():
 			population = gp.evolve_population(population)
 
 	except Exception as e:
-		print(e)
+		print(f"Error: {e}")
 		pygame.quit()
 		exit()
 
 
 if __name__ == '__main__':
+	gp = GP(2, 2, NUMBER_OF_WARRIORS)
+	angle_decoder = AngleDecoder()
+	direction_decoder = DirectionDecoder()
+	population = gp.create_population()
+
 	game_loop()
 	pygame.quit()
 
