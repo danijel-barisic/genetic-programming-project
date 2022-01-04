@@ -1,6 +1,9 @@
 import pygame
 import random
 import math
+import json
+import pickle
+
 from GP import GP
 from OutputDecoder import AngleDecoder, DirectionDecoder
 
@@ -8,7 +11,7 @@ class FoodEntity:
 	def __init__(self, x, y):
 		self.x = x
 		self.y = y
-		self.colour = red
+		self.colour = FOOD_COLOUR
 		self.radius = DEFAULT_RADIUS
 
 	def __str__(self):
@@ -37,30 +40,34 @@ class WarriorEntity:
 	def __str__(self):
 		return f"Warrior location: {self.x},{self.y} - Score: {self.score}"
 
-# constants
-display_width = 800
-display_height = 600
+
+with open('./config.json') as f:
+    config = json.load(f)
+
+# Pygame display values
+DISPLAY_WIDTH  = config["DISPLAY_WIDTH"]
+DISPLAY_HEIGHT = config["DISPLAY_HEIGHT"]
 
 # RGB values of colours
-black = (0,0,0)
-red = (255,0,0)
-green = (0,255,0)
-blue = (0,0,255)
-yellow = (255,255,0)
-white = (255,255,255)
+BG_COLOUR 			= config["BG_COLOUR"]
+FOOD_COLOUR 		= config["FOOD_COLOUR"]
+ANGLE_COLOUR 		= config["ANGLE_COLOUR"]
+ENTITY_COLOUR 		= config["ENTITY_COLOUR"]
+VISION_RANGE_COLOUR = config["VISION_RANGE_COLOUR"]
+OUR_ENTITY_COLOUR 	= config["OUR_ENTITY_COLOUR"]
+TEXT_COLOUR 		= config["TEXT_COLOUR"]
 
-PI = math.pi
+DEFAULT_RADIUS 			= config["DEFAULT_RADIUS"]
+DEFAULT_WARRIOR_RADIUS 	= config["DEFAULT_WARRIOR_RADIUS"]
+DEFAULT_VISION_RANGE 	= config["DEFAULT_VISION_RANGE"] + DEFAULT_WARRIOR_RADIUS
+NUMBER_OF_FOOD 			= config["NUMBER_OF_FOOD"]
+NUMBER_OF_WARRIORS 		= config["NUMBER_OF_WARRIORS"]
+MAXIMUM_SPEED 			= config["MAXIMUM_SPEED"]
 
-DEFAULT_RADIUS = 15
-DEFAULT_WARRIOR_RADIUS = 20
-DEFAULT_VISION_RANGE = DEFAULT_WARRIOR_RADIUS + 50
-NUMBER_OF_FOOD = 5
-NUMBER_OF_WARRIORS = 4
-MAXIMUM_SPEED = 5
+#game lasts ~(NUMBER_OF_TICKS/TICK_SPEED) seconds  
+NUMBER_OF_TICKS = config["NUMBER_OF_TICKS"]
+TICK_SPEED 		= config["TICK_SPEED"]
 
-#game lasts (NUMBER_OF_TICKS/TICK_SPEED) seconds  
-NUMBER_OF_TICKS = 400
-TICK_SPEED = 25
 
 gp = GP(2, 2, NUMBER_OF_WARRIORS)
 angle_decoder = AngleDecoder()
@@ -69,17 +76,15 @@ population = gp.create_population()
 
 
 pygame.init()
-
-gameDisplay = pygame.display.set_mode((display_width,display_height))
+gameDisplay = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 pygame.display.set_caption('Protein Warriors')
 clock = pygame.time.Clock()
 
 
-
-# writes time passed in top left corner
-def write_time(count):
+# writes generation and time passed in top left corner
+def write_time(gen, count):
 	font = pygame.font.SysFont(None, 25)
-	text = font.render(f"Time passed: {count}", True, white)
+	text = font.render(f"Generation: {gen} - Time passed: {count}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (10, 10))
 
 
@@ -89,36 +94,36 @@ def draw_food(food):
 # also writes score next to the center of the circle
 def draw_warrior(war):
 
-	pygame.draw.circle(gameDisplay, blue, [war.x, war.y], war.vision, 0)
+	pygame.draw.circle(gameDisplay, VISION_RANGE_COLOUR, [war.x, war.y], war.vision, 1)
 	pygame.draw.circle(gameDisplay, war.colour, [war.x, war.y], war.radius, 0)
 
-	pygame.draw.line(gameDisplay, red, (war.x, war.y),
+	pygame.draw.line(gameDisplay, ANGLE_COLOUR, (war.x, war.y),
 			(war.x + math.cos(math.radians(war.angle))* war.radius,
 			 war.y + math.sin(math.radians(war.angle))* war.radius), 3)
 
 	font = pygame.font.SysFont(None, 20)
-	text = font.render(f"Score: {war.score}", True, white)
+	text = font.render(f"Score: {war.score}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (war.x, war.y))
 
 
 # if the player leaves the area, the game ends, only affects our player 
 def leaving_boundaries(our_war):
-	if our_war.x > display_width - our_war.radius or our_war.x - our_war.radius < 0 \
-		or our_war.y > display_height - our_war.radius or our_war.y - our_war.radius < 0:
+	if our_war.x > DISPLAY_WIDTH - our_war.radius or our_war.x - our_war.radius < 0 \
+		or our_war.y > DISPLAY_HEIGHT - our_war.radius or our_war.y - our_war.radius < 0:
 			return True
 	return False
 
 # checks if the center of the entity has passed the edge of the screen
 def warrior_boundaries(war):
-	if war.x > display_width:
-		war.x -= display_width
+	if war.x > DISPLAY_WIDTH:
+		war.x -= DISPLAY_WIDTH
 	elif war.x < 0:
-		war.x += display_width
+		war.x += DISPLAY_WIDTH
 
-	if war.y > display_height:
-		war.y -= display_height
+	if war.y > DISPLAY_HEIGHT:
+		war.y -= DISPLAY_HEIGHT
 	elif war.y < 0:
-		war.y += display_height
+		war.y += DISPLAY_HEIGHT
 
 # calculates the distance between centers, we are squaring both sides because math.sqrt is an expensive call
 def distance_between_centers_squared(ent1, ent2):
@@ -147,7 +152,7 @@ def check_crossover_vision(ent1, ent2):
 	return False
 
 def find_closest_food(war):
-	#smallest_dist = (display_height+display_width)*2
+	#smallest_dist = (DISPLAY_HEIGHT+DISPLAY_WIDTH)*2
 	smallest_dist = 99999
 	closes_food = 0
 	for idx, food in enumerate(war.food_in_range):
@@ -157,8 +162,6 @@ def find_closest_food(war):
 			closes_food = idx
 
 	war.food_in_range = war.food_in_range[closes_food]
-
-	## maybe useful?
 	#war.distance_to_food = math.sqrt(smallest_dist)
 
 
@@ -168,11 +171,11 @@ def check_player_events(x_change, y_change):
 		if event.type == pygame.QUIT:
 			gameExit = True
 
-		"""if event.type == pygame.MOUSEBUTTONUP:
+		if event.type == pygame.MOUSEBUTTONUP:
 			pos = pygame.mouse.get_pos()
 			food_ent = FoodEntity(pos[0], pos[1])
 
-			food.append(food_ent) """
+			food.append(food_ent)
 
 		if event.type == pygame.KEYDOWN:
 			if event.key == pygame.K_LEFT:
@@ -195,24 +198,22 @@ def check_player_events(x_change, y_change):
 
 def game_loop():
 	global population
+	global gameDisplay
+
 	# starting values for our entity
-	# our_warrior_x = (display_width * 0.45)
-	# our_warrior_y = (display_height * 0.8)
-	# our_warrior = WarriorEntity(our_warrior_x, our_warrior_y, yellow)
+	# our_warrior_x = (DISPLAY_WIDTH * 0.45)
+	# our_warrior_y = (DISPLAY_HEIGHT * 0.8)
+	# our_warrior = WarriorEntity(our_warrior_x, our_warrior_y, OUR_ENTITY_COLOUR)
+	#x_change, y_change = 0, 0
 
-	x_change, y_change = 0, 0
-	gameExit = False
-
-	while True:
-		#for gen in range(100):
-			#while not gameExit:
-
-		try:
+	gen = 1
+	try:
+		while True:
 			# starting food
 			food = []
 			for i in range(NUMBER_OF_FOOD):
-				random_x = random.randrange(20, display_width-20)
-				random_y = random.randrange(20, display_height-20)
+				random_x = random.randrange(20, DISPLAY_WIDTH-20)
+				random_y = random.randrange(20, DISPLAY_HEIGHT-20)
 				food_ent = FoodEntity(random_x, random_y)
 
 				food.append(food_ent)
@@ -221,20 +222,29 @@ def game_loop():
 			warriors = []
 			# create warrior entities
 			for unit in population:
-				random_x = random.randrange(20, display_width-20)
-				random_y = random.randrange(20, display_height-20)
-				warrior_ent = WarriorEntity(random_x, random_y, green, unit)
+				random_x = random.randrange(20, DISPLAY_WIDTH-20)
+				random_y = random.randrange(20, DISPLAY_HEIGHT-20)
+				warrior_ent = WarriorEntity(random_x, random_y, ENTITY_COLOUR, unit)
 
 				warriors.append(warrior_ent)
 
 
-
+			gameExit = False
 			for i in range(NUMBER_OF_TICKS):
-				if gameExit:
+
+				# needed to tell the OS that the program is running
+				if i % 2 == 0:
+					pygame.event.pump()
+				
+				if gameExit:	
 					return
 
 
-				################## checking all movements and warrior-food crossovers
+				################## drawing the simulation
+				gameDisplay.fill(BG_COLOUR)
+				
+
+				################## checking player movements
 				# x_change, y_change = check_player_events(x_change, y_change)
 				# our_warrior.x += x_change
 				# our_warrior.y += y_change
@@ -243,113 +253,115 @@ def game_loop():
 				# player leaving boundaries ends game
 				# if leaving_boundaries(our_warrior):
 				# 	gameExit = True
-
-
-				################## drawing the simulation
-				gameDisplay.fill(black)
 				# draw_warrior(our_warrior)
-				
+
+
+				# needed to check our with in the crossover function
+				#temp_wars_with_ours = warriors[:]
+				# temp_wars_with_ours.append(our_warrior)
+
+				if i % 2 == 0:
+					# passing values to gp and changing based on output
+					for w in warriors:
+						output = list(gp.calculate_values(w.unit, [w.distance_to_food, w.angle]))
+						w.speed = min(MAXIMUM_SPEED, direction_decoder.decode(output[0]))
+						w.angle += angle_decoder.decode(output[1])
+
+
+						x_travel = math.cos(math.radians(w.angle)) * w.speed
+						y_travel = math.sin(math.radians(w.angle)) * w.speed
+						w.x += x_travel
+						w.y += y_travel
+
+						# count traveled
+						w.traveled += abs(x_travel) + abs(y_travel) 
+
+						warrior_boundaries(w)
+
+						# each iterations can have new foods be in range or get out of range 
+						w.food_in_range = []
+						w.distance_to_food = 0
+
+
+					# each iterations can have new foods be in range or get out of range 
+					# our_warrior.food_in_range = []
+					# our_warrior.distance_to_food = 0
+
+					################## checking if food in vision field
+					eaten_food = []
+					crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in warriors]
+					for pair in crossovers_to_check:
+						if pair[0] in eaten_food:
+							continue
+						
+						if check_crossover_vision(*pair):
+							pair[1].food_in_range.append(pair[0])
+
+						if check_crossover(*pair):
+
+							eaten_food.append(pair[0])
+							food.remove(pair[0])
+
+							pair[1].score += 1
+							pair[1].increase_size()
+
+
+					for w in warriors:
+						if len(w.food_in_range):
+							# unlists the element
+							if len(w.food_in_range) == 1:
+								w.food_in_range = w.food_in_range[0]
+
+							#finds the closes of N foods in vision field
+							elif len(w.food_in_range) >= 2:
+								find_closest_food(w)
+
+							#w.angle = math.degrees(math.atan2(w.food_in_range.y - w.y, w.food_in_range.x - w.x))
+							w.distance_to_food = math.sqrt(abs(distance_between_circles(w, w.food_in_range)))
+
+						else:
+							w.angle = 0
+							w.distance_to_food = w.vision
+
+
+					################## replenishing the food
+					# potentially 2 or more food can be eaten in the same frame
+					while(len(food) < NUMBER_OF_FOOD):
+						random_x = random.randrange(20, DISPLAY_WIDTH-20)
+						random_y = random.randrange(20, DISPLAY_HEIGHT-20)
+						food_ent = FoodEntity(random_x, random_y)
+
+						food.append(food_ent)
+
 				for f in food:
 					draw_food(f)
 
-				# needed to check our with in the crossover function
-				temp_wars_with_ours = warriors[:]
-				# temp_wars_with_ours.append(our_warrior)
-
-				# check crossovers between each food and warrior
-				eaten_food = []
-				crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in temp_wars_with_ours]
-				for pair in crossovers_to_check:
-					if check_crossover(*pair):
-						if pair[0] in eaten_food:
-							continue
-
-						eaten_food.append(pair[0])
-						food.remove(pair[0])
-
-						pair[1].score += 1
-						pair[1].increase_size()
-
-
-
-				# placeholder, we can change radius here
 				for w in warriors:
-					output = list(gp.calculate_values(w.unit, [w.distance_to_food, w.angle]))
-					#print(output)
-					#output[1] = angle_decoder.decode(output[1])
-					w.speed = min(MAXIMUM_SPEED, direction_decoder.decode(output[0]))
-					w.angle += angle_decoder.decode(output[1])
-
-
-					x_travel = math.cos(math.radians(w.angle)) * w.speed
-					y_travel = math.sin(math.radians(w.angle)) * w.speed
-					w.x += x_travel
-					w.y += y_travel
-
-					# count traveled
-					w.traveled += abs(x_travel) + abs(y_travel) 
-
-					warrior_boundaries(w)
 					draw_warrior(w)
 
-					# each iterations can have new foods be in range or get out of range 
-					w.food_in_range = []
-					w.distance_to_food = 0
-
-
-				# each iterations can have new foods be in range or get out of range 
-				# our_warrior.food_in_range = []
-				# our_warrior.distance_to_food = 0
-
-				########## maybe every few moves to save CPU usage?
-				######### checking if food in vision field
-				crossovers_to_check = [(food_ent, warrior_ent) for food_ent in food for warrior_ent in temp_wars_with_ours]
-				for pair in crossovers_to_check:
-					if check_crossover_vision(*pair):
-						pair[1].food_in_range.append(pair[0])
-
-				for w in temp_wars_with_ours:
-					if len(w.food_in_range):
-						# unlists the element
-						if len(w.food_in_range) == 1:
-							w.food_in_range = w.food_in_range[0]
-
-						#finds the closes of N foods in vision field
-						elif len(w.food_in_range) >= 2:
-							find_closest_food(w)
-
-						#w.angle = math.degrees(math.atan2(w.food_in_range.y - w.y, w.food_in_range.x - w.x))
-
-						## maybe useful?
-						w.distance_to_food = math.sqrt(abs(distance_between_circles(w, w.food_in_range)))
-					else:
-						w.angle = 0
-						w.distance_to_food = w.vision
-
-				################## replenishing the food
-				# potentially 2 or more food can be eaten in the same frame
-				while(len(food) < NUMBER_OF_FOOD):
-					random_x = random.randrange(20, display_width-20)
-					random_y = random.randrange(20, display_height-20)
-					food_ent = FoodEntity(random_x, random_y)
-
-					food.append(food_ent)
-
-
-				write_time(i)
+				write_time(gen, i)
 				pygame.display.update()
 				clock.tick(TICK_SPEED)
 			
+			best_fitness = 0
+			best_unit = 0
 			for w in warriors:
 				w.unit.fitness = w.score
-
+				if w.score > best_fitness:
+					best_fitness = w.score
+					best_unit = w.unit.trees
+			
+			print(f'Generation {gen} ended - best fitness: {best_fitness}') #- best unit: {pickle.dumps(best_unit)}
+			gen += 1
 			population = gp.evolve_population(population)
 
-		except Exception as e:
-			print(e)
-			pygame.quit()
+	except Exception as e:
+		print(e)
+		pygame.quit()
+		exit()
 
 
+if __name__ == '__main__':
+	game_loop()
+	pygame.quit()
 
-game_loop()
-pygame.quit()
