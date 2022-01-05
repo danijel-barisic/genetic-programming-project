@@ -224,9 +224,6 @@ def game_loop():
 			gameExit = False
 			for i in range(NUMBER_OF_TICKS):
 
-				if i == 200:
-					z = 0
-
 				# needed to tell the OS that the program is running
 				if i % 2 == 0:
 					pygame.event.pump()
