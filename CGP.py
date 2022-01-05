@@ -117,6 +117,32 @@ class CGP(Algorithm):
         return population
 
     def evolve_population(self, population):
+        return self.algorithm_default(population)
+
+    def crossover(self, unit1, unit2):
+        
+        unit = Unit(self.input_count, self.output_count, self, create_genome=False)
+
+        crossover_point = randrange(1, len(unit1.genome) - 1)
+
+        unit.genome = unit1.genome[:crossover_point].copy() + unit2.genome[crossover_point:].copy()
+
+        return unit
+
+    def mutate(self, unit):
+        
+        bit_to_change = randrange(len(unit.genome))
+
+        if bit_to_change < LAYER_COUNT * LAYER_DEPTH * OPERATOR_PARAMS:
+            if (bit_to_change + 1) % OPERATOR_PARAMS == 0:
+                unit.genome[bit_to_change] = randrange(len(CGP.function_dict)) + 1
+            else:
+                unit.genome[bit_to_change] = randrange(int(bit_to_change / (LAYER_DEPTH * OPERATOR_PARAMS)) * LAYER_DEPTH + self.input_count) + 1
+
+        else:
+            unit.genome[bit_to_change] = randrange(self.input_count + LAYER_COUNT * LAYER_DEPTH) + 1
+    
+    def algorithm_default(self, population):
         objects = [[unit.fitness, unit] for unit in population]
         objects.sort()
 
@@ -172,25 +198,45 @@ class CGP(Algorithm):
 
         return population
 
-    def crossover(self, unit1, unit2):
+    def algorithm_mutation_only(self, population):
+        objects = [[unit.fitness, unit] for unit in population]
+        objects.sort()
+
+        min_fitness = objects[0][0]
+        max_fitness = objects[-1][0]
+
+        for object in objects:
+            object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
+
+        temp = 0
+
+        for object in objects:
+            x = object[0]
+            object[0] += temp
+            temp += x
+
+        population = []
+        adjusted_size = self.population_size
+
+        while self.population_size % 4 != 0: 
+            adjusted_size -= 1
         
-        unit = Unit(self.input_count, self.output_count, self, create_genome=False)
+        added_units_num = self.population_size - adjusted_size
+        upper_population_index = (3 / 4) * adjusted_size
 
-        crossover_point = randrange(1, len(unit1.genome) - 1)
+        for index in range(upper_population_index, self.population_size):
 
-        unit.genome = unit1.genome[:crossover_point].copy() + unit2.genome[crossover_point:].copy()
+            units = [None] * 4
 
-        return unit
+            for unit in units:
 
-    def mutate(self, unit):
+                unit = objects[index][1]
+                self.mutate(unit)
+                population.append(unit)
         
-        bit_to_change = randrange(len(unit.genome))
+        for _ in range(added_units_num):
 
-        if bit_to_change < LAYER_COUNT * LAYER_DEPTH * OPERATOR_PARAMS:
-            if (bit_to_change + 1) % OPERATOR_PARAMS == 0:
-                unit.genome[bit_to_change] = randrange(len(CGP.function_dict)) + 1
-            else:
-                unit.genome[bit_to_change] = randrange(int(bit_to_change / (LAYER_DEPTH * OPERATOR_PARAMS)) * LAYER_DEPTH + self.input_count) + 1
+            rand_unit = random.choice(population)
+            population.append(rand_unit)
 
-        else:
-            unit.genome[bit_to_change] = randrange(self.input_count + LAYER_COUNT * LAYER_DEPTH) + 1
+        return population
