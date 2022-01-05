@@ -123,15 +123,24 @@ class CGP(Algorithm):
         min_fitness = objects[0][0]
         max_fitness = objects[-1][0]
 
-        for object in objects:
-            object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
+        if max_fitness != min_fitness:
 
-        temp = 0
+            for object in objects:
+                object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
 
-        for object in objects:
-            x = object[0]
-            object[0] += temp
-            temp += x
+            temp = 0
+
+            for object in objects:
+                x = object[0]
+                object[0] += temp
+                temp += x
+
+        else:
+
+            curr = 1
+            for object in objects:
+                object[0] = curr
+                curr += 1
 
         population = []
 

@@ -15,6 +15,8 @@ MUTATION_CHANCE = config["MUTATION_CHANCE"]
 MUTATE_THIS_NODE_CHANCE = config["MUTATE_THIS_NODE_CHANCE"]
 CHOOSE_THIS_NODE_CHANCE = config["CHOOSE_THIS_NODE_CHANCE"]
 RESULT_CHOOSE_CHANCE = config["RESULT_CHOOSE_CHANCE"]
+MAX_NODE_COUNT = config["MAX_NODE_COUNT"]
+START_WITH_GOOD_SEED = config["START_WITH_GOOD_SEED"]
 
 class AbsNode():
     def __lt__(self, other):
@@ -289,7 +291,18 @@ class GP(Algorithm):
 
     def create_population(self):
         population = []
-        for _ in range(self.population_size):
+
+        if START_WITH_GOOD_SEED:
+            unit = Unit(self.input_count, self.output_count, self, create_tree=False)
+            tree1 = ConstLeaf(unit)
+            tree1.value = 200
+            tree2 = Leaf(unit)
+            tree2.input_index = 1
+            unit.trees.append(tree1)
+            unit.trees.append(tree2)
+            population.append(unit)
+
+        while len(population) < self.population_size:
             population.append(Unit(self.input_count, self.output_count, self))
         return population
 
@@ -321,7 +334,7 @@ class GP(Algorithm):
 
         population = []
 
-        for _ in range(self.population_size):
+        while len(population) < self.population_size:
 
             unit1 = None
             unit2 = None
@@ -341,15 +354,32 @@ class GP(Algorithm):
             unit1 = objects[index1][1]
             unit2 = objects[index2][1]
 
-            population.append(self.crossover(unit1, unit2))
+            new_unit = self.crossover(unit1, unit2)
 
-        for unit in population:
             if random() < MUTATION_CHANCE:
-                tree_index = randrange(unit.output_count)
-                self.mutate(unit, unit.trees[tree_index])
-                unit.trees[tree_index] = self.mutate(unit, unit.trees[tree_index])
+                tree_index = randrange(new_unit.output_count)
+                self.mutate(new_unit, new_unit.trees[tree_index])
+                new_unit.trees[tree_index] = self.mutate(new_unit, new_unit.trees[tree_index])
+
+            if self.check_unit(new_unit):
+                population.append(new_unit)
 
         return population
+
+    def check_unit(self, unit):
+        for tree in unit.trees:
+            if self.count_nodes(tree) > MAX_NODE_COUNT:
+                return False
+        return True
+
+    def count_nodes(self, tree):
+        if isinstance(tree, AbsLeaf):
+            return 1
+        else:
+            nodes = 0
+            for tree in tree.subtrees:
+                nodes += self.count_nodes(tree)
+            return nodes
 
     def crossover(self, unit1, unit2):
         

@@ -5,6 +5,7 @@ import json
 import pickle
 
 from GP import GP
+from CGP import CGP
 from OutputDecoder import AngleDecoder, DirectionDecoder
 
 class FoodEntity:
@@ -223,6 +224,9 @@ def game_loop():
 			gameExit = False
 			for i in range(NUMBER_OF_TICKS):
 
+				if i == 200:
+					z = 0
+
 				# needed to tell the OS that the program is running
 				if i % 2 == 0:
 					pygame.event.pump()
@@ -294,7 +298,7 @@ def game_loop():
 							food.remove(pair[0])
 
 							pair[1].score += 1
-							pair[1].increase_size()
+							#pair[1].increase_size()
 
 
 					for w in warriors:
@@ -307,7 +311,7 @@ def game_loop():
 							elif len(w.food_in_range) >= 2:
 								find_closest_food(w)
 
-							#w.angle = math.degrees(math.atan2(w.food_in_range.y - w.y, w.food_in_range.x - w.x))
+							w.angle = math.degrees(math.atan2(w.food_in_range.y - w.y, w.food_in_range.x - w.x))
 							w.distance_to_food = math.sqrt(abs(distance_between_circles(w, w.food_in_range)))
 
 						else:
@@ -340,7 +344,6 @@ def game_loop():
 				w.unit.fitness = w.score
 				if w.score > best_fitness:
 					best_fitness = w.score
-					best_unit = w.unit.trees
 			
 			print(f'Generation {gen} ended - best fitness: {best_fitness}') #- best unit: {pickle.dumps(best_unit)}
 			gen += 1
@@ -353,7 +356,7 @@ def game_loop():
 
 
 if __name__ == '__main__':
-	gp = GP(2, 2, NUMBER_OF_WARRIORS)
+	gp = CGP(2, 2, NUMBER_OF_WARRIORS)
 	angle_decoder = AngleDecoder()
 	direction_decoder = DirectionDecoder()
 	population = gp.create_population()
