@@ -1,5 +1,5 @@
 from math import sqrt
-from random import randrange, random
+from random import randrange, random, choice
 from Algorithm import Algorithm
 import json
 
@@ -117,7 +117,7 @@ class CGP(Algorithm):
         return population
 
     def evolve_population(self, population):
-        return self.algorithm_default(population)
+        return self.algorithm_mutation_only(population)
 
     def crossover(self, unit1, unit2):
         
@@ -218,11 +218,11 @@ class CGP(Algorithm):
         population = []
         adjusted_size = self.population_size
 
-        while self.population_size % 4 != 0: 
+        while adjusted_size % 4 != 0: 
             adjusted_size -= 1
         
         added_units_num = self.population_size - adjusted_size
-        upper_population_index = (3 / 4) * adjusted_size
+        upper_population_index = int((3 / 4) * adjusted_size)
 
         for index in range(upper_population_index, self.population_size):
 
@@ -236,7 +236,7 @@ class CGP(Algorithm):
         
         for _ in range(added_units_num):
 
-            rand_unit = random.choice(population)
+            rand_unit = choice(population)
             population.append(rand_unit)
 
         return population
