@@ -13,7 +13,6 @@ class FoodEntity:
 		self.x = x
 		self.y = y
 		self.colour = FOOD_COLOUR
-		#self.radius = DEFAULT_RADIUS
 		self.radius = DEFAULT_RADIUS * random.uniform(1,1.2)
 
 	def __str__(self):
@@ -56,7 +55,6 @@ FOOD_COLOUR 		= config["FOOD_COLOUR"]
 ANGLE_COLOUR 		= config["ANGLE_COLOUR"]
 ENTITY_COLOUR 		= config["ENTITY_COLOUR"]
 VISION_RANGE_COLOUR = config["VISION_RANGE_COLOUR"]
-OUR_ENTITY_COLOUR 	= config["OUR_ENTITY_COLOUR"]
 TEXT_COLOUR 		= config["TEXT_COLOUR"]
 
 DEFAULT_RADIUS 			= config["DEFAULT_RADIUS"]
@@ -94,14 +92,6 @@ def draw_warrior(gameDisplay, war):
 	font = pygame.font.SysFont(None, 20)
 	text = font.render(f"Score: {round(war.score,2)}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (war.x, war.y))
-
-
-# if the player leaves the area, the game ends, only affects our player 
-def leaving_boundaries(our_war):
-	if our_war.x > DISPLAY_WIDTH - our_war.radius or our_war.x - our_war.radius < 0 \
-		or our_war.y > DISPLAY_HEIGHT - our_war.radius or our_war.y - our_war.radius < 0:
-			return True
-	return False
 
 # checks if the center of the entity has passed the edge of the screen
 def warrior_boundaries(war):
@@ -142,7 +132,6 @@ def check_crossover_vision(ent1, ent2):
 	return False
 
 def find_closest_food(war):
-	#smallest_dist = (DISPLAY_HEIGHT+DISPLAY_WIDTH)*2
 	smallest_dist = 99999
 	closes_food = 0
 	for idx, food in enumerate(war.food_in_range):
@@ -153,50 +142,10 @@ def find_closest_food(war):
 
 	war.food_in_range = war.food_in_range[closes_food]
 
-# moving our entity
-def check_player_events(x_change, y_change):
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT:
-			gameExit = True
-
-		if event.type == pygame.MOUSEBUTTONUP:
-			pos = pygame.mouse.get_pos()
-			food_ent = FoodEntity(pos[0], pos[1])
-
-			food.append(food_ent)
-
-		if event.type == pygame.KEYDOWN:
-			if event.key == pygame.K_LEFT:
-				x_change = -5
-			if event.key == pygame.K_RIGHT:
-				x_change = 5
-			if event.key == pygame.K_UP:
-				y_change = -5
-			if event.key == pygame.K_DOWN:
-				y_change = 5
-
-		if event.type == pygame.KEYUP:
-			if event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:
-				x_change = 0
-			if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-				y_change = 0
-
-	return x_change, y_change
-
-
 def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decoder):
-	#global population
-	#global algorithm
-	
-	# starting values for our entity
-	# our_warrior_x = (DISPLAY_WIDTH * 0.45)
-	# our_warrior_y = (DISPLAY_HEIGHT * 0.8)
-	# our_warrior = WarriorEntity(our_warrior_x, our_warrior_y, OUR_ENTITY_COLOUR)
-	#x_change, y_change = 0, 0
-
-	clock = pygame.time.Clock()
-	gen = 1
 	try:
+		clock = pygame.time.Clock()
+		gen = 1
 		while True:
 			# starting food
 			food = []
@@ -207,7 +156,6 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 				food.append(food_ent)
 
-
 			warriors = []
 			# create warrior entities
 			for unit in population:
@@ -217,39 +165,12 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 				warriors.append(warrior_ent)
 
-
-			gameExit = False
 			for i in range(NUMBER_OF_TICKS):
-
-				# needed to tell the OS that the program is running
+			
 				if i % 2 == 0:
+					# needed to tell the OS that the program is running
 					pygame.event.pump()
-				
-				if gameExit:	
-					return
 
-
-				################## drawing the simulation
-				gameDisplay.fill(BG_COLOUR)
-				
-
-				################## checking player movements
-				# x_change, y_change = check_player_events(x_change, y_change)
-				# our_warrior.x += x_change
-				# our_warrior.y += y_change
-				# our_warrior.traveled += abs(x_change) + abs(y_change) 
-
-				# player leaving boundaries ends game
-				# if leaving_boundaries(our_warrior):
-				# 	gameExit = True
-				# draw_warrior(gameDisplay, our_warrior)
-
-
-				# needed to check our with in the crossover function
-				#temp_wars_with_ours = warriors[:]
-				# temp_wars_with_ours.append(our_warrior)
-
-				if i % 2 == 0:
 					# passing values to algorithm and changing based on output
 					for w in warriors:
 						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle]))
@@ -270,11 +191,6 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 						# each iterations can have new foods be in range or get out of range 
 						w.food_in_range = []
 						w.distance_to_food = 0
-
-
-					# each iterations can have new foods be in range or get out of range 
-					# our_warrior.food_in_range = []
-					# our_warrior.distance_to_food = 0
 
 					################## checking if food in vision field
 					eaten_food = []
@@ -346,6 +262,9 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 						food_ent = FoodEntity(random_x, random_y)
 
 						food.append(food_ent)
+
+				################## drawing the simulation
+				gameDisplay.fill(BG_COLOUR)
 
 				for f in food:
 					draw_food(gameDisplay, f)
