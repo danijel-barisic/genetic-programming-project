@@ -13,7 +13,8 @@ class FoodEntity:
 		self.x = x
 		self.y = y
 		self.colour = FOOD_COLOUR
-		self.radius = DEFAULT_RADIUS
+		#self.radius = DEFAULT_RADIUS
+		self.radius = DEFAULT_RADIUS * random.uniform(1,1.2)
 
 	def __str__(self):
 		return f"Food location: {self.x}, {self.y}"
@@ -24,7 +25,7 @@ class WarriorEntity:
 		self.y = y
 		self.colour = colour
 		self.unit = unit
-		self.radius = DEFAULT_WARRIOR_RADIUS
+		self.radius = DEFAULT_WARRIOR_RADIUS * random.uniform(1,1.1)
 		self.vision = DEFAULT_VISION_RANGE
 		self.angle = random.randint(0, 360)
 		self.food_in_range = []
@@ -34,16 +35,16 @@ class WarriorEntity:
 		self.distance_to_food = DEFAULT_VISION_RANGE
 
 
-	def increase_size(self):
-		self.radius += 5
-		self.vision += 5
+	def increase_size(self, increase_by):
+		self.radius += increase_by
+		self.vision += increase_by
 
 	def __str__(self):
 		return f"Warrior location: {self.x},{self.y} - Score: {self.score}"
 
 
 with open('./config.json') as f:
-    config = json.load(f)
+	config = json.load(f)
 
 # Pygame display values
 DISPLAY_WIDTH  = config["DISPLAY_WIDTH"]
@@ -69,23 +70,19 @@ MAXIMUM_SPEED 			= config["MAXIMUM_SPEED"]
 NUMBER_OF_TICKS = config["NUMBER_OF_TICKS"]
 TICK_SPEED 		= config["TICK_SPEED"]
 
-pygame.init()
-gameDisplay = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
-pygame.display.set_caption('Protein Warriors')
-clock = pygame.time.Clock()
 
 # writes generation and time passed in top left corner
-def write_time(gen, count):
+def write_time(gameDisplay, gen, count):
 	font = pygame.font.SysFont(None, 25)
 	text = font.render(f"Generation: {gen} - Time passed: {count}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (10, 10))
 
 
-def draw_food(food):
+def draw_food(gameDisplay, food):
 	pygame.draw.circle(gameDisplay, food.colour, [food.x, food.y], food.radius, 0)
 
 # also writes score next to the center of the circle
-def draw_warrior(war):
+def draw_warrior(gameDisplay, war):
 
 	pygame.draw.circle(gameDisplay, VISION_RANGE_COLOUR, [war.x, war.y], war.vision, 1)
 	pygame.draw.circle(gameDisplay, war.colour, [war.x, war.y], war.radius, 0)
@@ -95,7 +92,7 @@ def draw_warrior(war):
 			 war.y + math.sin(math.radians(war.angle))* war.radius), 3)
 
 	font = pygame.font.SysFont(None, 20)
-	text = font.render(f"Score: {war.score}", True, TEXT_COLOUR)
+	text = font.render(f"Score: {round(war.score,2)}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (war.x, war.y))
 
 
@@ -155,8 +152,6 @@ def find_closest_food(war):
 			closes_food = idx
 
 	war.food_in_range = war.food_in_range[closes_food]
-	#war.distance_to_food = math.sqrt(smallest_dist)
-
 
 # moving our entity
 def check_player_events(x_change, y_change):
@@ -189,15 +184,17 @@ def check_player_events(x_change, y_change):
 	return x_change, y_change
 
 
-def game_loop():
-	global population
-	global gp
+def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decoder):
+	#global population
+	#global algorithm
+	
 	# starting values for our entity
 	# our_warrior_x = (DISPLAY_WIDTH * 0.45)
 	# our_warrior_y = (DISPLAY_HEIGHT * 0.8)
 	# our_warrior = WarriorEntity(our_warrior_x, our_warrior_y, OUR_ENTITY_COLOUR)
 	#x_change, y_change = 0, 0
 
+	clock = pygame.time.Clock()
 	gen = 1
 	try:
 		while True:
@@ -245,7 +242,7 @@ def game_loop():
 				# player leaving boundaries ends game
 				# if leaving_boundaries(our_warrior):
 				# 	gameExit = True
-				# draw_warrior(our_warrior)
+				# draw_warrior(gameDisplay, our_warrior)
 
 
 				# needed to check our with in the crossover function
@@ -253,9 +250,9 @@ def game_loop():
 				# temp_wars_with_ours.append(our_warrior)
 
 				if i % 2 == 0:
-					# passing values to gp and changing based on output
+					# passing values to algorithm and changing based on output
 					for w in warriors:
-						output = list(gp.calculate_values(w.unit, [w.distance_to_food, w.angle]))
+						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle]))
 						w.speed = min(MAXIMUM_SPEED, direction_decoder.decode(output[0]))
 						w.angle += angle_decoder.decode(output[1])
 
@@ -290,14 +287,39 @@ def game_loop():
 							pair[1].food_in_range.append(pair[0])
 
 						if check_crossover(*pair):
-
 							eaten_food.append(pair[0])
 							food.remove(pair[0])
 
-							pair[1].score += 1
-							#pair[1].increase_size()
+							pair[1].score += pair[0].radius / DEFAULT_RADIUS
+							pair[1].increase_size(pair[0].radius)
 
 
+					# warriors can eat other warriors
+					eaten_wars = []
+					warrior_interaction = [(war1, war2) for war1 in warriors for war2 in warriors]
+					for war_pair in warrior_interaction:
+						if war_pair[0] in eaten_wars or war_pair[1] in eaten_wars:
+							continue
+
+						if war_pair[0] == war_pair[1]:
+							continue
+
+						if check_crossover(*war_pair):
+							if war_pair[0].radius >= war_pair[1].radius:
+								war_pair[0].score += war_pair[1].radius * 0.3
+								war_pair[0].radius += war_pair[1].radius * 0.5
+
+								eaten_wars.append(war_pair[1])
+								warriors.remove(war_pair[1])
+							else:
+								war_pair[1].score += war_pair[0].radius * 0.3
+								war_pair[1].radius += war_pair[0].radius * 0.5
+
+
+								eaten_wars.append(war_pair[0])
+								warriors.remove(war_pair[0])
+
+					# checking if there is food in the vision range
 					for w in warriors:
 						if len(w.food_in_range):
 							# unlists the element
@@ -326,12 +348,12 @@ def game_loop():
 						food.append(food_ent)
 
 				for f in food:
-					draw_food(f)
+					draw_food(gameDisplay, f)
 
 				for w in warriors:
-					draw_warrior(w)
+					draw_warrior(gameDisplay, w)
 
-				write_time(gen, i)
+				write_time(gameDisplay, gen, i)
 				pygame.display.update()
 				clock.tick(TICK_SPEED)
 			
@@ -344,7 +366,7 @@ def game_loop():
 			
 			print(f'Generation {gen} ended - best fitness: {best_fitness}') #- best unit: {pickle.dumps(best_unit)}
 			gen += 1
-			population = gp.evolve_population(population)
+			population = algorithm.evolve_population(population)
 
 	except Exception as e:
 		print(f"Error: {e}")
@@ -352,12 +374,95 @@ def game_loop():
 		exit()
 
 
+def game_intro(gameDisplay):
+	
+	clock = pygame.time.Clock()
+	intro = True
+	angle = 0
+	while intro:
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				pygame.quit()
+				exit()
+		
+		gameDisplay.fill(BG_COLOUR)
+		# title
+		font = pygame.font.SysFont(None, 75)
+		text = font.render("Protein Warriors", True, TEXT_COLOUR)
+		gameDisplay.blit(text, ((DISPLAY_WIDTH/4)+50,(DISPLAY_HEIGHT/4)))
+
+		# rotating entity
+		angle += 10
+		# food
+		pygame.draw.circle(gameDisplay, FOOD_COLOUR, [(DISPLAY_WIDTH/4),(DISPLAY_HEIGHT/4)-80], 15, 0)
+		# entity
+		pygame.draw.circle(gameDisplay, VISION_RANGE_COLOUR, [(DISPLAY_WIDTH/4)-100,(DISPLAY_HEIGHT/4)], 70, 1)
+		pygame.draw.circle(gameDisplay, ENTITY_COLOUR, [(DISPLAY_WIDTH/4)-100,(DISPLAY_HEIGHT/4)], 20, 0)
+		# line where it looks
+		pygame.draw.line(gameDisplay, ANGLE_COLOUR, ((DISPLAY_WIDTH/4)-100,(DISPLAY_HEIGHT/4)),
+			((DISPLAY_WIDTH/4)-100 + math.cos(math.radians(angle))* 20,
+			(DISPLAY_HEIGHT/4)+ math.sin(math.radians(angle))* 20), 3)
+
+		# buttons to choose an algorithm
+		font = pygame.font.SysFont(None, 35)
+		pygame.draw.rect(gameDisplay, ENTITY_COLOUR,((DISPLAY_WIDTH/4)-30,(DISPLAY_HEIGHT/2),100,50))
+		text = font.render("GP", True, BG_COLOUR)
+		gameDisplay.blit(text, ((DISPLAY_WIDTH/4),(DISPLAY_HEIGHT/2)+13))
+
+		pygame.draw.rect(gameDisplay, ENTITY_COLOUR,((DISPLAY_WIDTH/2)-30,(DISPLAY_HEIGHT/2),100,50))
+		text = font.render("CGP", True, BG_COLOUR)
+		gameDisplay.blit(text, ((DISPLAY_WIDTH/2)-5,(DISPLAY_HEIGHT/2)+13))
+		
+		# currently not done
+		pygame.draw.rect(gameDisplay, FOOD_COLOUR,((3*(DISPLAY_WIDTH/4))-30,(DISPLAY_HEIGHT/2),100,50))
+		text = font.render("NN", True, BG_COLOUR)
+		gameDisplay.blit(text, ((3*(DISPLAY_WIDTH/4)),(DISPLAY_HEIGHT/2)+13))
+
+		click = pygame.mouse.get_pressed()
+		if click[0] == 1:
+			mouse = pygame.mouse.get_pos()
+			
+			if (DISPLAY_WIDTH/4)-50 < mouse[0] < (DISPLAY_WIDTH/4)+120 and (DISPLAY_HEIGHT/2)-20 < mouse[1] < (DISPLAY_HEIGHT/2)+70:
+				return "GP"
+			elif (DISPLAY_WIDTH/2)-50 < mouse[0] < (DISPLAY_WIDTH/2)+120 and (DISPLAY_HEIGHT/2)-20 < mouse[1] < (DISPLAY_HEIGHT/2)+70:
+				return "CGP"
+			elif (3*(DISPLAY_WIDTH/4))-50 < mouse[0] < (3*(DISPLAY_WIDTH/4))+120 and (DISPLAY_HEIGHT/2)-20 < mouse[1] < (DISPLAY_HEIGHT/2)+70:
+				return "NN"
+			# else just continues if area wasn't correct
+
+		pygame.display.update()
+		clock.tick(10)
+
+
+
 if __name__ == '__main__':
-	gp = CGP(2, 2, NUMBER_OF_WARRIORS)
+
+	_debug_mode = False
+
+
+	ALGORITHM = config["ALGORITHM"]
+	INPUT_COUNT = config["INPUT_COUNT"]
+	OUTPUT_COUNT = config["OUTPUT_COUNT"]
+
+	pygame.init()
+	gameDisplay = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+	pygame.display.set_caption('Protein Warriors')
+
+	if not _debug_mode:
+		ALGORITHM = game_intro(gameDisplay)
+		print(ALGORITHM)
+
+	if ALGORITHM == "NN":
+		print("NN currently not available")
+		exit()
+
+
+	algorithm = eval(ALGORITHM + f"({INPUT_COUNT}, {OUTPUT_COUNT}, {NUMBER_OF_WARRIORS})")
 	angle_decoder = AngleDecoder()
 	direction_decoder = DirectionDecoder()
-	population = gp.create_population()
+	population = algorithm.create_population()
 
-	game_loop()
+
+	game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decoder)
 	pygame.quit()
 
