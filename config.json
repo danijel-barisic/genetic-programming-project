@@ -1,6 +1,6 @@
 {
     "ALGORITHM": "GP",
-    "INPUT_COUNT":  2,
+    "INPUT_COUNT":  6,
     "OUTPUT_COUNT": 2,
 
     "LEAF_CHANCE": 0.4,

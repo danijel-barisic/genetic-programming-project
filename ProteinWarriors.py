@@ -27,11 +27,15 @@ class WarriorEntity:
 		self.radius = DEFAULT_WARRIOR_RADIUS * random.uniform(1,1.1)
 		self.vision = DEFAULT_VISION_RANGE
 		self.angle = random.randint(0, 360)
+		self.angle_to_warrior = 0
 		self.food_in_range = []
+		self.warriors_in_range = []
 		self.speed = MAXIMUM_SPEED
 		self.score = 0
+		self.enemy_score = 0
 		self.traveled = 0 
 		self.distance_to_food = DEFAULT_VISION_RANGE
+		self.distance_to_warrior = DEFAULT_VISION_RANGE # ? 0?
 
 
 	def increase_size(self, increase_by):
@@ -90,7 +94,7 @@ def draw_warrior(gameDisplay, war):
 			 war.y + math.sin(math.radians(war.angle))* war.radius), 3)
 
 	font = pygame.font.SysFont(None, 20)
-	text = font.render(f"Score: {round(war.score,2)}", True, TEXT_COLOUR)
+	text = font.render(f"Score: {round(war.enemy_score, 3)}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (war.x, war.y))
 
 # checks if the center of the entity has passed the edge of the screen
@@ -115,6 +119,7 @@ def distance_of_radii_squared(ent1r, ent2r):
 
 # calculates distance between entities, slightly incorrect as it works with subtracting squared values
 # could be changed if precise calculations need to be run and we use only non-squared values
+## TODO: check math of this, potentially wrong
 def distance_between_circles(ent1, ent2):
 	return distance_between_centers_squared(ent1, ent2) - distance_of_radii_squared(ent1.radius, ent2.radius)
 
@@ -131,16 +136,22 @@ def check_crossover_vision(ent1, ent2):
 		return True
 	return False
 
-def find_closest_food(war):
+def check_crossover_warriors_vision(ent1, ent2):
+	# squaring both sides save processing power and speeds up
+	if distance_between_centers_squared(ent1, ent2) <= distance_of_radii_squared(ent1.vision, ent2.vision):
+		return True
+	return False
+
+def find_closest_obj(war, objects_in_range):
 	smallest_dist = 99999
-	closes_food = 0
-	for idx, food in enumerate(war.food_in_range):
-		dist = distance_between_circles(war, food)
+	closes_idx = 0
+	for idx, obj in enumerate(objects_in_range):
+		dist = distance_between_circles(war, obj)
 		if dist < smallest_dist:
 			smallest_dist = dist
-			closes_food = idx
-
-	war.food_in_range = war.food_in_range[closes_food]
+			closes_idx = idx
+	
+	return closes_idx
 
 def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decoder):
 	try:
@@ -167,13 +178,13 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 			for i in range(NUMBER_OF_TICKS):
 			
-				if i % 2 == 0:
+				if i % 2 == 1:
 					# needed to tell the OS that the program is running
 					pygame.event.pump()
 
 					# passing values to algorithm and changing based on output
 					for w in warriors:
-						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle]))
+						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle, w.distance_to_warrior, w.angle_to_warrior, w.score, w.enemy_score]))
 						w.speed = min(MAXIMUM_SPEED, direction_decoder.decode(output[0]))
 						w.angle += angle_decoder.decode(output[1])
 
@@ -188,8 +199,9 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 						warrior_boundaries(w)
 
-						# each iterations can have new foods be in range or get out of range 
+						# each iterations can have new foods or warriors be in range or get out of range 
 						w.food_in_range = []
+						w.warriors_in_range = []
 						w.distance_to_food = 0
 
 					################## checking if food in vision field
@@ -220,6 +232,11 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 						if war_pair[0] == war_pair[1]:
 							continue
 
+						if check_crossover_warriors_vision(*war_pair):
+							war_pair[0].warriors_in_range.append(war_pair[1])
+							war_pair[1].warriors_in_range.append(war_pair[0])
+
+
 						if check_crossover(*war_pair):
 							if war_pair[0].radius >= war_pair[1].radius:
 								war_pair[0].score += war_pair[1].radius * 0.3
@@ -244,7 +261,8 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 							#finds the closes of N foods in vision field
 							elif len(w.food_in_range) >= 2:
-								find_closest_food(w)
+								closes_idx = find_closest_obj(w, w.food_in_range)
+								w.food_in_range = w.food_in_range[closes_idx]
 
 							w.angle = math.degrees(math.atan2(w.food_in_range.y - w.y, w.food_in_range.x - w.x))
 							w.distance_to_food = math.sqrt(abs(distance_between_circles(w, w.food_in_range)))
@@ -252,6 +270,25 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 						else:
 							w.angle = 0
 							w.distance_to_food = w.vision
+
+						if len(w.warriors_in_range):
+							# unlists the element
+							if len(w.warriors_in_range) == 1:
+								w.warriors_in_range = w.warriors_in_range[0]
+							elif len(w.warriors_in_range) >= 2:
+								closes_idx = find_closest_obj(w, w.warriors_in_range)
+								w.warriors_in_range = w.warriors_in_range[closes_idx]
+
+							w.enemy_score = w.warriors_in_range.score
+							w.angle_to_warrior = math.degrees(math.atan2(w.warriors_in_range.y - w.y, w.warriors_in_range.x - w.x))
+							w.distance_to_warrior = math.sqrt(abs(distance_between_circles(w, w.warriors_in_range)))
+
+						else:
+							w.enemy_score = w.score + 1
+							w.angle_to_warrior = 180
+							w.distance_to_warrior = w.vision
+
+
 
 
 					################## replenishing the food
@@ -356,7 +393,7 @@ def game_intro(gameDisplay):
 
 if __name__ == '__main__':
 
-	_debug_mode = False
+	_debug_mode = True
 
 
 	ALGORITHM = config["ALGORITHM"]
