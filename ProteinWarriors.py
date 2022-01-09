@@ -408,6 +408,7 @@ if __name__ == '__main__':
 		ALGORITHM = game_intro(gameDisplay)
 		print(ALGORITHM)
 
+	# run ProteinWarriorsNoEating.py instead, for NN
 	if ALGORITHM == "NN":
 		print("NN currently not available")
 		exit()
