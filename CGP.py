@@ -117,7 +117,7 @@ class CGP(Algorithm):
         return population
 
     def evolve_population(self, population):
-        return self.algorithm_mutation_only(population)
+        return self.algorithm_default(population)
 
     def crossover(self, unit1, unit2):
         

@@ -219,7 +219,7 @@ class Branch(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x, y, z, w = self.subtrees[0].value, self.subtrees[1].value, self.subtrees[2].value, self.subtrees[3].value
-        self.value = z if x < y else w
+        self.value = z if x > y else w
     def copy(self):
         ret_val = Branch(self.unit)
         self.children_count = 4
@@ -293,14 +293,54 @@ class GP(Algorithm):
         population = []
 
         if START_WITH_GOOD_SEED:
-            unit = Unit(self.input_count, self.output_count, self, create_tree=False)
-            tree1 = ConstLeaf(unit)
-            tree1.value = 200
-            tree2 = Leaf(unit)
-            tree2.input_index = 1
-            unit.trees.append(tree1)
-            unit.trees.append(tree2)
-            population.append(unit)
+            for _ in range(int(self.population_size * 0.2)):
+                unit = Unit(self.input_count, self.output_count, self, create_tree=False)
+
+                node1 = Leaf(unit)
+                node1.input_index = 3
+                node2 = ConstLeaf(unit)
+                node2.value = 180
+                node3 = Minus(unit)
+                node3.subtrees = [node1, node2]
+                node4 = Leaf(unit)
+                node4.input_index = 4
+                node5 = ConstLeaf(unit)
+                node5.value = 0
+                node6 = Leaf(unit)
+                node6.input_index = 3
+                node7 = Branch(unit)
+                node7.subtrees = [node4, node5, node6, node3]
+                node8 = Leaf(unit)
+                node8.input_index = 5
+                node9 = ConstLeaf(unit)
+                node9.value = 0
+                node10 = Leaf(unit)
+                node10.input_index = 1
+                tree1 = Branch(unit)
+                tree1.subtrees = [node8, node9, node7, node10]
+
+                node3 = ConstLeaf(unit)
+                node3.value = 200
+                node4 = Leaf(unit)
+                node4.input_index = 4
+                node5 = ConstLeaf(unit)
+                node5.value = 0
+                node6 = ConstLeaf(unit)
+                node6.value = 200
+                node7 = Branch(unit)
+                node7.subtrees = [node4, node5, node6, node3]
+                node8 = Leaf(unit)
+                node8.input_index = 5
+                node9 = ConstLeaf(unit)
+                node9.value = 0
+                node10 = ConstLeaf(unit)
+                node10.value = 200
+                tree2 = Branch(unit)
+                tree2.subtrees = [node8, node9, node7, node10]
+
+                unit.trees = [tree2, tree1]
+
+                population.append(unit)
 
         while len(population) < self.population_size:
             population.append(Unit(self.input_count, self.output_count, self))
