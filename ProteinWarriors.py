@@ -33,6 +33,7 @@ class WarriorEntity:
 		self.speed = MAXIMUM_SPEED
 		self.score = 0
 		self.enemy_score = 0
+		self.enemy_in_sight = 0
 		self.traveled = 0 
 		self.distance_to_food = DEFAULT_VISION_RANGE
 		self.distance_to_warrior = DEFAULT_VISION_RANGE # ? 0?
@@ -94,7 +95,7 @@ def draw_warrior(gameDisplay, war):
 			 war.y + math.sin(math.radians(war.angle))* war.radius), 3)
 
 	font = pygame.font.SysFont(None, 20)
-	text = font.render(f"Score: {round(war.enemy_score, 3)}", True, TEXT_COLOUR)
+	text = font.render(f"Score: {round(war.score, 3)}", True, TEXT_COLOUR)
 	gameDisplay.blit(text, (war.x, war.y))
 
 # checks if the center of the entity has passed the edge of the screen
@@ -184,7 +185,7 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 					# passing values to algorithm and changing based on output
 					for w in warriors:
-						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle, w.distance_to_warrior, w.angle_to_warrior, w.score, w.enemy_score]))
+						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle, w.distance_to_warrior, w.angle_to_warrior, w.score - w.enemy_score, w.enemy_in_sight]))
 						w.speed = min(MAXIMUM_SPEED, direction_decoder.decode(output[0]))
 						w.angle += angle_decoder.decode(output[1])
 
@@ -219,7 +220,7 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 							food.remove(pair[0])
 
 							pair[1].score += pair[0].radius / DEFAULT_RADIUS
-							pair[1].increase_size(pair[0].radius)
+							#pair[1].increase_size(pair[0].radius)
 
 
 					# warriors can eat other warriors
@@ -240,13 +241,15 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 						if check_crossover(*war_pair):
 							if war_pair[0].radius >= war_pair[1].radius:
 								war_pair[0].score += war_pair[1].radius * 0.3
-								war_pair[0].radius += war_pair[1].radius * 0.5
+								war_pair[1].score /= 2
+								#war_pair[0].radius += war_pair[1].radius * 0.5
 
 								eaten_wars.append(war_pair[1])
 								warriors.remove(war_pair[1])
 							else:
 								war_pair[1].score += war_pair[0].radius * 0.3
-								war_pair[1].radius += war_pair[0].radius * 0.5
+								war_pair[0].score /= 2
+								#war_pair[1].radius += war_pair[0].radius * 0.5
 
 
 								eaten_wars.append(war_pair[0])
@@ -282,11 +285,13 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 							w.enemy_score = w.warriors_in_range.score
 							w.angle_to_warrior = math.degrees(math.atan2(w.warriors_in_range.y - w.y, w.warriors_in_range.x - w.x))
 							w.distance_to_warrior = math.sqrt(abs(distance_between_circles(w, w.warriors_in_range)))
+							w.enemy_in_sight = 1
 
 						else:
 							w.enemy_score = w.score + 1
 							w.angle_to_warrior = 180
 							w.distance_to_warrior = w.vision
+							w.enemy_in_sight = 0
 
 
 
@@ -393,7 +398,7 @@ def game_intro(gameDisplay):
 
 if __name__ == '__main__':
 
-	_debug_mode = True
+	_debug_mode = False
 
 
 	ALGORITHM = config["ALGORITHM"]
