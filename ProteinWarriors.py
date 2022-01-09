@@ -239,7 +239,7 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 
 						if check_crossover(*war_pair):
-							if war_pair[0].radius >= war_pair[1].radius:
+							if war_pair[0].score >= war_pair[1].score:
 								war_pair[0].score += war_pair[1].radius * 0.3
 								war_pair[1].score /= 2
 								#war_pair[0].radius += war_pair[1].radius * 0.5
@@ -318,8 +318,12 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 				pygame.display.update()
 				clock.tick(TICK_SPEED)
 			
+			##best_unit = 0
+			# returning eaten entities to update their fitness
+			for w in eaten_wars:
+				warriors.append(w)
+
 			best_fitness = 0
-			best_unit = 0
 			for w in warriors:
 				w.unit.fitness = w.score
 				if w.score > best_fitness:
