@@ -3,6 +3,7 @@ import random
 import math
 import json
 import pickle
+import string
 
 from GP import GP
 from CGP import CGP
@@ -46,6 +47,8 @@ class WarriorEntity:
 	def __str__(self):
 		return f"Warrior location: {self.x},{self.y} - Score: {self.score}"
 
+	def __getstate__(self):
+		return self.__dict__.copy()
 
 with open('./config.json') as f:
 	config = json.load(f)
@@ -73,6 +76,8 @@ MAXIMUM_SPEED 			= config["MAXIMUM_SPEED"]
 NUMBER_OF_TICKS = config["NUMBER_OF_TICKS"]
 TICK_SPEED 		= config["TICK_SPEED"]
 
+WRITE_TO_FILE = config["WRITE_TO_FILE"]
+FILE_NAME = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
 
 # writes generation and time passed in top left corner
 def write_time(gameDisplay, gen, count):
@@ -154,10 +159,9 @@ def find_closest_obj(war, objects_in_range):
 	
 	return closes_idx
 
-def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder, direction_decoder):
+def game_loop(gameDisplay, population, gen, algorithm, EATING_MODE, angle_decoder, direction_decoder):
 	try:
 		clock = pygame.time.Clock()
-		gen = 1
 		while True:
 			# starting food
 			food = []
@@ -185,7 +189,7 @@ def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder
 
 					# passing values to algorithm and changing based on output
 					for w in warriors:
-						if mode_not_eating:
+						if not EATING_MODE:
 							output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle]))
 						else:
 							output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle, w.distance_to_warrior, w.angle_to_warrior, w.score - w.enemy_score, w.enemy_in_sight]))
@@ -225,7 +229,7 @@ def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder
 							pair[1].score += pair[0].radius / DEFAULT_RADIUS
 							#pair[1].increase_size(pair[0].radius)
 
-					if not mode_not_eating:
+					if EATING_MODE:
 						# warriors can eat other warriors
 						eaten_wars = []
 						warrior_interaction = [(war1, war2) for war1 in warriors for war2 in warriors]
@@ -277,7 +281,7 @@ def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder
 							w.angle = 0
 							w.distance_to_food = w.vision
 
-						if not mode_not_eating and len(w.warriors_in_range):
+						if EATING_MODE and len(w.warriors_in_range):
 							# unlists the element
 							if len(w.warriors_in_range) == 1:
 								w.warriors_in_range = w.warriors_in_range[0]
@@ -321,7 +325,7 @@ def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder
 			
 			##best_unit = 0
 			# returning eaten entities to update their fitness
-			if not mode_not_eating:
+			if EATING_MODE:
 				for w in eaten_wars:
 					warriors.append(w)
 
@@ -332,6 +336,19 @@ def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder
 					best_fitness = w.score
 			
 			print(f'Generation {gen} ended - best fitness: {best_fitness}') #- best unit: {pickle.dumps(best_unit)}
+
+			# writing all entities into a file
+			if WRITE_TO_FILE and gen % 5 == 0:
+				with open(f"./trained/{FILE_NAME}.json", 'w') as f:
+					dictionary = {}
+					entity_list = []
+					for w in warriors:
+						entity_list.append(str(pickle.dumps(w)))
+
+					dictionary["units"] = entity_list
+					dictionary["gen"] = gen
+					json.dump(dictionary, f)
+
 			gen += 1
 			population = algorithm.evolve_population(population)
 
@@ -403,31 +420,77 @@ def game_intro(gameDisplay):
 
 if __name__ == '__main__':
 
-	_debug_mode = False
+	INTRO_SCREEN = config["INTRO_SCREEN"]
+	EATING_MODE = config["EATING_MODE"]
 
-	mode_not_eating = False
+	READ_FROM_FILE = config["READ_FROM_FILE"]
+	INPUT_FILE = config["INPUT_FILE"]
+
 	ALGORITHM = config["ALGORITHM"]
 	INPUT_COUNT = config["INPUT_COUNT"]
 	OUTPUT_COUNT = config["OUTPUT_COUNT"]
 
+	# simulator init
 	pygame.init()
 	gameDisplay = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 	pygame.display.set_caption('Protein Warriors')
 
-	if not _debug_mode:
+	if INTRO_SCREEN:
 		ALGORITHM = game_intro(gameDisplay)
 
 	# importing NN when not needed slows the program drastically
 	if ALGORITHM == "NN":
 		from NN import NN
-		mode_not_eating = True
+		EATING_MODE = False
 		INPUT_COUNT = 2
 		OUTPUT_COUNT = 2
 
 	algorithm = eval(ALGORITHM + f"({INPUT_COUNT}, {OUTPUT_COUNT}, {NUMBER_OF_WARRIORS})")
 	angle_decoder = AngleDecoder()
 	direction_decoder = DirectionDecoder()
-	population = algorithm.create_population()
+	
+	gen = 1
+	population = []
+	if READ_FROM_FILE and INPUT_FILE != "":
+		try:
+			# with open(f"./trained/{INPUT_FILE}", 'r') as f:
+			# 	dictionary = json.load(f)
+			# #	print(dictionary)
+			# 	gen = dictionary["gen"]
+			# 	entity_list = dictionary["units"]
+			# 	print(f"entity_list {len(entity_list)}")
+			# 	for entity in entity_list:
+			# 		try:
+			# 			print('jesi tu puko 0')
+			# 			print(type(entity))
+			# 			print(entity)
 
-	game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder, direction_decoder)
+			# 			entity = entity.replace("'", '"')
+			# 			entity_bytes = bytearray(entity, 'utf8')
+			# 			print('jesi tu puko asdasd')
+			# 			print(type(entity_bytes))
+
+			# 			print('jesi tu puko 1')
+			# 			new_entity = pickle.loads(entity_bytes)
+			# 			print('jesi tu puko 2')
+			# 			print(new_entity)
+			# 			print(new_entity.unit)
+			# 			population.append(new_entity.unit)
+			# 		except Exception as e:
+			# 			print(e)
+			# 			quit()
+			# 	print('successful_end')
+			# 	print(population)
+			population = algorithm.create_population()
+
+		# in case of a wrong file
+		except:
+			print('not successful')
+
+			population = algorithm.create_population()
+
+	else:		
+		population = algorithm.create_population()
+	print(f"pop {len(population)}")
+	game_loop(gameDisplay, population, gen, algorithm, EATING_MODE, angle_decoder, direction_decoder)
 	pygame.quit()
