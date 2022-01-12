@@ -17,6 +17,7 @@ CHOOSE_THIS_NODE_CHANCE = config["CHOOSE_THIS_NODE_CHANCE"]
 RESULT_CHOOSE_CHANCE = config["RESULT_CHOOSE_CHANCE"]
 MAX_NODE_COUNT = config["MAX_NODE_COUNT"]
 START_WITH_GOOD_SEED = config["START_WITH_GOOD_SEED"]
+FLOAT_INT_LIMIT = config["FLOAT_INT_LIMIT"]
 
 class AbsNode():
     def __lt__(self, other):
@@ -59,6 +60,8 @@ class Plus(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
+        y = y if abs(y) < FLOAT_INT_LIMIT else int(y)
         self.value = x + y
     def copy(self):
         ret_val = Plus(self.unit)
@@ -79,6 +82,8 @@ class Minus(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
+        y = y if abs(y) < FLOAT_INT_LIMIT else int(y)
         self.value = x - y
     def copy(self):
         ret_val = Minus(self.unit)
@@ -99,6 +104,8 @@ class Times(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
+        y = y if abs(y) < FLOAT_INT_LIMIT else int(y)
         self.value = x * y
     def copy(self):
         ret_val = Times(self.unit)
@@ -119,7 +126,10 @@ class Divide(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
+        y = y if abs(y) < FLOAT_INT_LIMIT else int(y)
         self.value = x / y if abs(y) >= 1 else x
+
     def copy(self):
         ret_val = Divide(self.unit)
         self.children_count = 2
@@ -139,6 +149,8 @@ class Modulo(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x,y = self.subtrees[0].value, self.subtrees[1].value
+        x = int(x)
+        y = int(y)
         self.value = x % y if abs(y) >= 1 else x
     def copy(self):
         ret_val = Modulo(self.unit)
@@ -159,6 +171,7 @@ class Negation(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x = self.subtrees[0].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
         self.value = -x
     def copy(self):
         ret_val = Negation(self.unit)
@@ -179,6 +192,7 @@ class Square(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x = self.subtrees[0].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
         self.value = x**2
     def copy(self):
         ret_val = Square(self.unit)
@@ -199,6 +213,7 @@ class Root(AbsNode):
         for subtree in self.subtrees:
             subtree.evaluate()
         x = self.subtrees[0].value
+        x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
         self.value = sqrt(x) if x >= 0 else sqrt(-x)
     def copy(self):
         ret_val = Root(self.unit)
@@ -293,7 +308,7 @@ class GP(Algorithm):
         population = []
 
         if START_WITH_GOOD_SEED:
-            for _ in range(int(self.population_size * 0.2)):
+            for _ in range(int(self.population_size * 0)):
                 unit = Unit(self.input_count, self.output_count, self, create_tree=False)
 
                 node1 = Leaf(unit)

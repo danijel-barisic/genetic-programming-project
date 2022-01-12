@@ -15,6 +15,9 @@ LAYER_DEPTH = config["LAYER_DEPTH"]
 A = config["A"]
 B = config["B"]
 
+FLOAT_INT_LIMIT = config["FLOAT_INT_LIMIT"]
+CONST_LEAF_RANGE = config["CONST_LEAF_RANGE"]
+
 class Unit:
     def __init__(self, input_count, output_count, cgp, create_genome=True):
         self.input_count = input_count
@@ -72,15 +75,45 @@ class Unit:
 
 class CGP(Algorithm):
 
-    f1 = lambda a, b : a + b
-    f2 = lambda a, b : a - b
-    f3 = lambda a, b : a * b
-    f4 = lambda a, b : a / b if b != 0 else a
-    f5 = lambda a, b : a % b if b != 0 else a
-    f6 = lambda a, b : -a
-    f7 = lambda a, b : a ** 2
-    f8 = lambda a, b : sqrt(a) if a >= 0 else sqrt(-a)
-    f9 = lambda a, b : randrange(-5, 6)
+    def f1(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        b = b if abs(b) < FLOAT_INT_LIMIT else int(b)
+        return a + b
+
+    def f2(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        b = b if abs(b) < FLOAT_INT_LIMIT else int(b)
+        return a - b 
+
+    def f3(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        b = b if abs(b) < FLOAT_INT_LIMIT else int(b)
+        return a * b
+
+    def f4(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        b = b if abs(b) < FLOAT_INT_LIMIT else int(b)
+        return a / b if abs(b) >= 1 else a
+
+    def f5(a, b):
+        a = int(a)
+        b = int(b)
+        return a % b if abs(b) >= 1 else a
+
+    def f6(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        return -a
+
+    def f7(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        return a ** 2
+
+    def f8(a, b):
+        a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
+        return sqrt(a) if a >= 0 else sqrt(-a)
+
+    def f9(a, b):
+        return randrange(-CONST_LEAF_RANGE, CONST_LEAF_RANGE + 1)
 
     function_dict = {
         1 : f1,
@@ -117,7 +150,7 @@ class CGP(Algorithm):
         return population
 
     def evolve_population(self, population):
-        return self.algorithm_default(population)
+        return self.algorithm_mutation_only(population)
 
     def crossover(self, unit1, unit2):
         
@@ -205,15 +238,24 @@ class CGP(Algorithm):
         min_fitness = objects[0][0]
         max_fitness = objects[-1][0]
 
-        for object in objects:
-            object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
+        if max_fitness != min_fitness:
 
-        temp = 0
+            for object in objects:
+                object[0] = A + (B-A) * (object[0] - min_fitness)/(max_fitness - min_fitness)
 
-        for object in objects:
-            x = object[0]
-            object[0] += temp
-            temp += x
+            temp = 0
+
+            for object in objects:
+                x = object[0]
+                object[0] += temp
+                temp += x
+
+        else:
+
+            curr = 1
+            for object in objects:
+                object[0] = curr
+                curr += 1
 
         population = []
         adjusted_size = self.population_size
