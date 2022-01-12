@@ -3,6 +3,8 @@
     "INPUT_COUNT":  6,
     "OUTPUT_COUNT": 2,
 
+    "FLOAT_INT_LIMIT": 500,
+
     "LEAF_CHANCE": 0.4,
     "CONST_LEAF_CHANCE": 0.1,
     "CONST_LEAF_RANGE": 500,
