@@ -6,7 +6,6 @@ import pickle
 
 from GP import GP
 from CGP import CGP
-from NN import NN
 from OutputDecoder import AngleDecoder, DirectionDecoder
 
 class FoodEntity:
@@ -418,8 +417,9 @@ if __name__ == '__main__':
 	if not _debug_mode:
 		ALGORITHM = game_intro(gameDisplay)
 
-	# run ProteinWarriorsNoEating.py instead, for NN
+	# importing NN when not needed slows the program drastically
 	if ALGORITHM == "NN":
+		from NN import NN
 		mode_not_eating = True
 		INPUT_COUNT = 2
 		OUTPUT_COUNT = 2
