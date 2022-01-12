@@ -6,6 +6,7 @@ import pickle
 
 from GP import GP
 from CGP import CGP
+from NN import NN
 from OutputDecoder import AngleDecoder, DirectionDecoder
 
 class FoodEntity:
@@ -154,7 +155,7 @@ def find_closest_obj(war, objects_in_range):
 	
 	return closes_idx
 
-def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decoder):
+def game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder, direction_decoder):
 	try:
 		clock = pygame.time.Clock()
 		gen = 1
@@ -185,7 +186,10 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 
 					# passing values to algorithm and changing based on output
 					for w in warriors:
-						output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle, w.distance_to_warrior, w.angle_to_warrior, w.score - w.enemy_score, w.enemy_in_sight]))
+						if mode_not_eating:
+							output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle]))
+						else:
+							output = list(algorithm.calculate_values(w.unit, [w.distance_to_food, w.angle, w.distance_to_warrior, w.angle_to_warrior, w.score - w.enemy_score, w.enemy_in_sight]))
 						w.speed = min(MAXIMUM_SPEED, direction_decoder.decode(output[0]))
 						w.angle += angle_decoder.decode(output[1])
 
@@ -222,38 +226,38 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 							pair[1].score += pair[0].radius / DEFAULT_RADIUS
 							#pair[1].increase_size(pair[0].radius)
 
+					if not mode_not_eating:
+						# warriors can eat other warriors
+						eaten_wars = []
+						warrior_interaction = [(war1, war2) for war1 in warriors for war2 in warriors]
+						for war_pair in warrior_interaction:
+							if war_pair[0] in eaten_wars or war_pair[1] in eaten_wars:
+								continue
 
-					# warriors can eat other warriors
-					eaten_wars = []
-					warrior_interaction = [(war1, war2) for war1 in warriors for war2 in warriors]
-					for war_pair in warrior_interaction:
-						if war_pair[0] in eaten_wars or war_pair[1] in eaten_wars:
-							continue
+							if war_pair[0] == war_pair[1]:
+								continue
 
-						if war_pair[0] == war_pair[1]:
-							continue
-
-						if check_crossover_warriors_vision(*war_pair):
-							war_pair[0].warriors_in_range.append(war_pair[1])
-							war_pair[1].warriors_in_range.append(war_pair[0])
-
-
-						if check_crossover(*war_pair):
-							if war_pair[0].score >= war_pair[1].score:
-								war_pair[0].score += war_pair[1].radius * 0.3
-								war_pair[1].score /= 2
-								#war_pair[0].radius += war_pair[1].radius * 0.5
-
-								eaten_wars.append(war_pair[1])
-								warriors.remove(war_pair[1])
-							else:
-								war_pair[1].score += war_pair[0].radius * 0.3
-								war_pair[0].score /= 2
-								#war_pair[1].radius += war_pair[0].radius * 0.5
+							if check_crossover_warriors_vision(*war_pair):
+								war_pair[0].warriors_in_range.append(war_pair[1])
+								war_pair[1].warriors_in_range.append(war_pair[0])
 
 
-								eaten_wars.append(war_pair[0])
-								warriors.remove(war_pair[0])
+							if check_crossover(*war_pair):
+								if war_pair[0].score >= war_pair[1].score:
+									war_pair[0].score += war_pair[1].radius * 0.3
+									war_pair[1].score /= 2
+									#war_pair[0].radius += war_pair[1].radius * 0.5
+
+									eaten_wars.append(war_pair[1])
+									warriors.remove(war_pair[1])
+								else:
+									war_pair[1].score += war_pair[0].radius * 0.3
+									war_pair[0].score /= 2
+									#war_pair[1].radius += war_pair[0].radius * 0.5
+
+
+									eaten_wars.append(war_pair[0])
+									warriors.remove(war_pair[0])
 
 					# checking if there is food in the vision range
 					for w in warriors:
@@ -274,7 +278,7 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 							w.angle = 0
 							w.distance_to_food = w.vision
 
-						if len(w.warriors_in_range):
+						if not mode_not_eating and len(w.warriors_in_range):
 							# unlists the element
 							if len(w.warriors_in_range) == 1:
 								w.warriors_in_range = w.warriors_in_range[0]
@@ -292,8 +296,6 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 							w.angle_to_warrior = 180
 							w.distance_to_warrior = w.vision
 							w.enemy_in_sight = 0
-
-
 
 
 					################## replenishing the food
@@ -320,8 +322,9 @@ def game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decod
 			
 			##best_unit = 0
 			# returning eaten entities to update their fitness
-			for w in eaten_wars:
-				warriors.append(w)
+			if not mode_not_eating:
+				for w in eaten_wars:
+					warriors.append(w)
 
 			best_fitness = 0
 			for w in warriors:
@@ -379,7 +382,7 @@ def game_intro(gameDisplay):
 		gameDisplay.blit(text, ((DISPLAY_WIDTH/2)-5,(DISPLAY_HEIGHT/2)+13))
 		
 		# currently not done
-		pygame.draw.rect(gameDisplay, FOOD_COLOUR,((3*(DISPLAY_WIDTH/4))-30,(DISPLAY_HEIGHT/2),100,50))
+		pygame.draw.rect(gameDisplay, ENTITY_COLOUR,((3*(DISPLAY_WIDTH/4))-30,(DISPLAY_HEIGHT/2),100,50))
 		text = font.render("NN", True, BG_COLOUR)
 		gameDisplay.blit(text, ((3*(DISPLAY_WIDTH/4)),(DISPLAY_HEIGHT/2)+13))
 
@@ -399,12 +402,11 @@ def game_intro(gameDisplay):
 		clock.tick(10)
 
 
-
 if __name__ == '__main__':
 
 	_debug_mode = False
 
-
+	mode_not_eating = False
 	ALGORITHM = config["ALGORITHM"]
 	INPUT_COUNT = config["INPUT_COUNT"]
 	OUTPUT_COUNT = config["OUTPUT_COUNT"]
@@ -415,20 +417,17 @@ if __name__ == '__main__':
 
 	if not _debug_mode:
 		ALGORITHM = game_intro(gameDisplay)
-		print(ALGORITHM)
 
 	# run ProteinWarriorsNoEating.py instead, for NN
 	if ALGORITHM == "NN":
-		print("NN currently not available")
-		exit()
-
+		mode_not_eating = True
+		INPUT_COUNT = 2
+		OUTPUT_COUNT = 2
 
 	algorithm = eval(ALGORITHM + f"({INPUT_COUNT}, {OUTPUT_COUNT}, {NUMBER_OF_WARRIORS})")
 	angle_decoder = AngleDecoder()
 	direction_decoder = DirectionDecoder()
 	population = algorithm.create_population()
 
-
-	game_loop(gameDisplay, population, algorithm, angle_decoder, direction_decoder)
+	game_loop(gameDisplay, population, algorithm, mode_not_eating, angle_decoder, direction_decoder)
 	pygame.quit()
-
