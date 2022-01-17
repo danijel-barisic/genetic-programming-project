@@ -22,6 +22,7 @@
 
     "DISPLAY_WIDTH": 1800,
     "DISPLAY_HEIGHT": 1000,
+    "LEARNING_WITHOUT_VISUALS": false,
 
     "BG_COLOUR": [0,0,0],
     "FOOD_COLOUR": [255,0,0],
@@ -45,5 +46,5 @@
 
 	"WRITE_TO_FILE": false,
 	"READ_FROM_FILE": true,
-	"INPUT_FILE": "787tye2i.json"
+	"INPUT_FILE": "GP_gen55_c79njmu3"
 }

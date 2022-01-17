@@ -37,7 +37,7 @@ class WarriorEntity:
 		self.enemy_in_sight = 0
 		self.traveled = 0 
 		self.distance_to_food = DEFAULT_VISION_RANGE
-		self.distance_to_warrior = DEFAULT_VISION_RANGE # ? 0?
+		self.distance_to_warrior = DEFAULT_VISION_RANGE
 
 
 	def increase_size(self, increase_by):
@@ -56,6 +56,7 @@ with open('./config.json') as f:
 # Pygame display values
 DISPLAY_WIDTH  = config["DISPLAY_WIDTH"]
 DISPLAY_HEIGHT = config["DISPLAY_HEIGHT"]
+LEARNING_WITHOUT_VISUALS = config["LEARNING_WITHOUT_VISUALS"]
 
 # RGB values of colours
 BG_COLOUR 			= config["BG_COLOUR"]
@@ -125,7 +126,6 @@ def distance_of_radii_squared(ent1r, ent2r):
 
 # calculates distance between entities, slightly incorrect as it works with subtracting squared values
 # could be changed if precise calculations need to be run and we use only non-squared values
-## TODO: check math of this, potentially wrong
 def distance_between_circles(ent1, ent2):
 	return distance_between_centers_squared(ent1, ent2) - distance_of_radii_squared(ent1.radius, ent2.radius)
 
@@ -320,10 +320,15 @@ def game_loop(gameDisplay, population, gen, algorithm, EATING_MODE, angle_decode
 					draw_warrior(gameDisplay, w)
 
 				write_time(gameDisplay, gen, i)
-				pygame.display.update()
+
+				# hides the screen so we don't see the action
+				if LEARNING_WITHOUT_VISUALS:
+					pygame.display.iconify()
+				else:
+					pygame.display.update()
+
 				clock.tick(TICK_SPEED)
 			
-			##best_unit = 0
 			# returning eaten entities to update their fitness
 			if EATING_MODE:
 				for w in eaten_wars:
@@ -335,22 +340,23 @@ def game_loop(gameDisplay, population, gen, algorithm, EATING_MODE, angle_decode
 				if w.score > best_fitness:
 					best_fitness = w.score
 			
-			print(f'Generation {gen} ended - best fitness: {best_fitness}') #- best unit: {pickle.dumps(best_unit)}
-
+			print(f'Generation {gen} ended - best fitness: {best_fitness}')
 			# writing all entities into a file
 			if WRITE_TO_FILE and gen % 5 == 0:
-				with open(f"./trained/{FILE_NAME}.json", 'w') as f:
-					dictionary = {}
-					entity_list = []
-					for w in warriors:
-						entity_list.append(str(pickle.dumps(w)))
+				with open(f"./trained/{ALGORITHM}_{FILE_NAME}.txt", 'wb') as f:
+					print('Saving population to file!')
 
-					dictionary["units"] = entity_list
-					dictionary["gen"] = gen
-					json.dump(dictionary, f)
+					write_list = []
+					write_list.append(gen)
+					for w in warriors:
+						write_list.append(w.unit)
+					
+					pickle.dump(write_list, f)
 
 			gen += 1
+			#print(f"population PRE EVOLVE len {len(population)}")
 			population = algorithm.evolve_population(population)
+			#print(f"population POST EVOLVE len {len(population)}")
 
 	except Exception as e:
 		print(f"Error: {e}")
@@ -452,45 +458,22 @@ if __name__ == '__main__':
 	gen = 1
 	population = []
 	if READ_FROM_FILE and INPUT_FILE != "":
+		# just in case
+		if '.txt' not in INPUT_FILE:
+			INPUT_FILE += '.txt'
 		try:
-			# with open(f"./trained/{INPUT_FILE}", 'r') as f:
-			# 	dictionary = json.load(f)
-			# #	print(dictionary)
-			# 	gen = dictionary["gen"]
-			# 	entity_list = dictionary["units"]
-			# 	print(f"entity_list {len(entity_list)}")
-			# 	for entity in entity_list:
-			# 		try:
-			# 			print('jesi tu puko 0')
-			# 			print(type(entity))
-			# 			print(entity)
+			with open(f"trained/{INPUT_FILE}", "rb") as f:
+				loaded_list = pickle.load(f)
+				gen = loaded_list.pop(0)
+				population = loaded_list
 
-			# 			entity = entity.replace("'", '"')
-			# 			entity_bytes = bytearray(entity, 'utf8')
-			# 			print('jesi tu puko asdasd')
-			# 			print(type(entity_bytes))
-
-			# 			print('jesi tu puko 1')
-			# 			new_entity = pickle.loads(entity_bytes)
-			# 			print('jesi tu puko 2')
-			# 			print(new_entity)
-			# 			print(new_entity.unit)
-			# 			population.append(new_entity.unit)
-			# 		except Exception as e:
-			# 			print(e)
-			# 			quit()
-			# 	print('successful_end')
-			# 	print(population)
-			population = algorithm.create_population()
-
-		# in case of a wrong file
+		# in case of a wrong file or reading error
 		except:
-			print('not successful')
-
+			print('Not successful reading from file')
 			population = algorithm.create_population()
-
 	else:		
 		population = algorithm.create_population()
-	print(f"pop {len(population)}")
+
+	print(f"Population starting len {len(population)}")
 	game_loop(gameDisplay, population, gen, algorithm, EATING_MODE, angle_decoder, direction_decoder)
 	pygame.quit()
