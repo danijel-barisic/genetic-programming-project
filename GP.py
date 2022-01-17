@@ -1,7 +1,12 @@
+from ast import Mod
+from logging import root
+from pickle import POP
 from Algorithm import Algorithm
 from random import random, randrange
 from math import sqrt
 import json
+import os
+import shutil
 
 with open('./config.json') as f:
     config = json.load(f)
@@ -38,6 +43,8 @@ class Leaf(AbsLeaf):
         ret_val.input_index = self.input_index
         ret_val.value = None
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}i{self.input_index}\n")
 
 class ConstLeaf(AbsLeaf):
     def __init__(self, unit):
@@ -49,6 +56,8 @@ class ConstLeaf(AbsLeaf):
         ret_val = ConstLeaf(self.unit)
         ret_val.value = self.value
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}c{self.value}\n")
 
 class Plus(AbsNode):
     def __init__(self, unit):
@@ -71,6 +80,10 @@ class Plus(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}+\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
 
 class Minus(AbsNode):
     def __init__(self, unit):
@@ -93,6 +106,10 @@ class Minus(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}-\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
 
 class Times(AbsNode):
     def __init__(self, unit):
@@ -115,6 +132,10 @@ class Times(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}*\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
 
 class Divide(AbsNode):
     def __init__(self, unit):
@@ -129,7 +150,6 @@ class Divide(AbsNode):
         x = x if abs(x) < FLOAT_INT_LIMIT else int(x)
         y = y if abs(y) < FLOAT_INT_LIMIT else int(y)
         self.value = x / y if abs(y) >= 1 else x
-
     def copy(self):
         ret_val = Divide(self.unit)
         self.children_count = 2
@@ -138,6 +158,10 @@ class Divide(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}/\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
 
 class Modulo(AbsNode):
     def __init__(self, unit):
@@ -160,6 +184,10 @@ class Modulo(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}%\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
 
 class Negation(AbsNode):
     def __init__(self, unit):
@@ -181,7 +209,11 @@ class Negation(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
-
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}neg\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
+    
 class Square(AbsNode):
     def __init__(self, unit):
         self.unit = unit
@@ -202,7 +234,11 @@ class Square(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
-
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}^2\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
+    
 class Root(AbsNode):
     def __init__(self, unit):
         self.unit = unit
@@ -223,7 +259,11 @@ class Root(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
-
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}root\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
+    
 class Branch(AbsNode):
     def __init__(self, unit):
         self.unit = unit
@@ -243,7 +283,11 @@ class Branch(AbsNode):
         for subtree in self.subtrees:
             ret_val.subtrees.append(subtree.copy())
         return ret_val
-
+    def generate(self, depth, file):
+        file.write(f"{depth * ' '}?\n")
+        for subtree in self.subtrees:
+            subtree.generate(depth + 1, file)
+    
 class Unit:
     def __init__(self, input_count, output_count, gp, create_tree = True):
         self.input_count = input_count
@@ -308,7 +352,7 @@ class GP(Algorithm):
         population = []
 
         if START_WITH_GOOD_SEED:
-            for _ in range(int(self.population_size * 0)):
+            for _ in range(int(self.population_size * 0.2)):
                 unit = Unit(self.input_count, self.output_count, self, create_tree=False)
 
                 node1 = Leaf(unit)
@@ -508,3 +552,104 @@ class GP(Algorithm):
         if not isinstance(tree, AbsLeaf):
             for subtree in tree.subtrees:
                 self.set_unit_object_in_tree(unit, subtree)
+
+    def save_population(self, population):
+
+        dir_name = "GP_population"
+        if os.path.exists(dir_name):
+            shutil.rmtree("GP_population")
+        
+        os.mkdir("GP_population")
+        index = 1
+
+        for unit in population:
+            f = open(f"GP_population/unit_{index}.txt", "w")
+            for tree in unit.trees:
+                tree.generate(0, f)
+                f.write("\n")
+            f.close()
+            index += 1
+
+    def read_population(self):
+        population = []
+        
+        dir_name = "GP_population"
+        for f in os.listdir(dir_name):
+            unit = Unit(self.input_count, self.output_count, self, create_tree=False)
+
+            file = open(f"GP_population/{f}", "r")
+            r = file.readlines()
+            r = [a.rstrip() for a in r]
+            
+            active_nodes = []
+            
+            for line in r:
+                if line == "":
+                    if len(active_nodes) > 0:
+                        unit.trees.append(active_nodes[0])
+                    active_nodes = []
+
+                else:
+                    whitespace_count = 0
+                    while line[0] == ' ':
+                        whitespace_count += 1
+                        line = line[1:]
+
+                    node = None
+                    
+                    if line[0] == "i":
+                        node = Leaf(unit)
+                        node.input_index = int(line[1:])
+
+                    elif line[0] == "c":
+                        node = ConstLeaf(unit)
+                        node.value = int(line[1:])
+
+                    elif line == "+":
+                        node = Plus(unit)
+
+                    elif line == "-":
+                        node = Minus(unit)
+
+                    elif line == "*":
+                        node = Times(unit)
+
+                    elif line == "/":
+                        node = Divide(unit)
+
+                    elif line == "%":
+                        node = Modulo(unit)
+
+                    elif line == "neg":
+                        node = Negation(unit)
+
+                    elif line == "^2":
+                        node = Square(unit)
+
+                    elif line == "root":
+                        node = Root(unit)
+
+                    elif line == "?":
+                        node = Branch(unit)
+
+                    if len(active_nodes) == 0:
+                        active_nodes.append(node)
+
+                    else:
+                        active_nodes[whitespace_count-1].subtrees.append(node)
+
+                        if len(active_nodes) > whitespace_count:
+                            active_nodes = active_nodes[:whitespace_count]
+                            active_nodes.append(node)
+                        else:
+                            active_nodes.append(node)
+
+            population.append(unit)
+
+        return population
+
+if __name__ == "__main__":
+    gp = GP(6,2, 20)
+    p = gp.create_population()
+    gp.save_population(p)
+    pop = gp.read_population()

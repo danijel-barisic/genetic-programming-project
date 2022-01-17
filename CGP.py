@@ -2,6 +2,8 @@ from math import sqrt
 from random import randrange, random, choice
 from Algorithm import Algorithm
 import json
+import os
+import shutil
 
 with open('./config.json') as f:
     config = json.load(f)
@@ -17,6 +19,42 @@ B = config["B"]
 
 FLOAT_INT_LIMIT = config["FLOAT_INT_LIMIT"]
 CONST_LEAF_RANGE = config["CONST_LEAF_RANGE"]
+
+def get_symbol(i):
+    if i == 1:
+        return "+"
+    elif i == 2:
+        return "-"
+    elif i == 3:
+        return "*"
+    elif i == 4:
+        return "/"
+    elif i == 5:
+        return "%"
+    elif i == 6:
+        return "neg"
+    elif i == 7:
+        return "^2"
+    elif i == 8:
+        return "sqrt"
+
+def get_index(s):
+    if s == "+":
+        return 1
+    elif s == "-":
+        return 2
+    elif s == "*":
+        return 3
+    elif s == "/":
+        return 4
+    elif s == "%":
+        return 5
+    elif s == "neg":
+        return 6
+    elif s == "^2":
+        return 7
+    elif s == "sqrt":
+        return 8
 
 class Unit:
     def __init__(self, input_count, output_count, cgp, create_genome=True):
@@ -112,9 +150,6 @@ class CGP(Algorithm):
         a = a if abs(a) < FLOAT_INT_LIMIT else int(a)
         return sqrt(a) if a >= 0 else sqrt(-a)
 
-    def f9(a, b):
-        return randrange(-CONST_LEAF_RANGE, CONST_LEAF_RANGE + 1)
-
     function_dict = {
         1 : f1,
         2 : f2,
@@ -124,7 +159,6 @@ class CGP(Algorithm):
         6 : f6,
         7 : f7,
         8 : f8,
-        9 : f9
     }
 
     def __init__(self, input_count, output_count, population_size):
@@ -282,3 +316,69 @@ class CGP(Algorithm):
             population.append(rand_unit)
 
         return population
+
+    def save_population(self, population):
+        
+        dir_name = "CGP_population"
+        if os.path.exists(dir_name):
+            shutil.rmtree("CGP_population")
+        
+        os.mkdir("CGP_population")
+        ind = 1
+
+        for unit in population:
+            genome = unit.genome
+            f = open(f"CGP_population/unit_{ind}.txt", "w")
+            for index in range(len(genome)):
+                if index < LAYER_DEPTH * LAYER_COUNT * 3:
+                    if index % 3 == 0:
+                        f.write(f"({genome[index]}")
+                    elif index % 3 == 1:
+                        f.write(f", {genome[index]}")
+                    else:
+                        f.write(f", {get_symbol(genome[index])}) ")
+
+                    if (index + 1) % (LAYER_DEPTH * 3) == 0:
+                        f.write("\n")
+                else:
+                    f.write(f"{genome[index]} ")
+
+            f.close()
+            ind += 1
+
+    def read_population(self):
+        population = []
+
+        dir_name = "CGP_population"
+        for f in os.listdir(dir_name):
+            unit = Unit(self.input_count, self.output_count, self, create_genome=False)
+            genome = []
+
+            file = open(f"CGP_population/{f}", "r")
+            r = file.readlines()
+            for j in range(len(r) - 1):
+                line = r[j]
+                line = line.rstrip().split(" ")
+                line = [c.replace("(", "") for c in line]
+                line = [c.replace(")", "") for c in line]
+                line = [c.replace(",", "") for c in line]
+                for i in range(len(line)):
+                    if i % 3 == 2:
+                        genome.append(get_index(line[i]))
+                    else:
+                        genome.append(int(line[i]))
+
+            final_line = r[-1].rstrip().split(" ")
+            for el in final_line:
+                genome.append(int(el))
+
+            unit.genome = genome
+            population.append(unit)
+
+        return population
+
+if __name__ == "__main__":
+    cgp = CGP(6, 2, 1)
+    p = cgp.create_population()
+    cgp.save_population(p)
+    pop = cgp.read_population()
