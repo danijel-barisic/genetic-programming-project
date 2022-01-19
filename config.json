@@ -1,6 +1,6 @@
 {
     "ALGORITHM": "GP",
-    "DEFAULT_CGP": false,
+    "MUTATION_ONLY_CGP": true,
     "INPUT_COUNT":  6,
     "OUTPUT_COUNT": 2,
 
