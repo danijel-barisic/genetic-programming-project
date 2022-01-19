@@ -378,7 +378,7 @@ class CGP(Algorithm):
         return population
 
 if __name__ == "__main__":
-    cgp = CGP(6, 2, 1)
+    cgp = CGP(6, 2, 20)
     p = cgp.create_population()
     cgp.save_population(p)
     pop = cgp.read_population()
