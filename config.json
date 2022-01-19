@@ -1,6 +1,6 @@
 {
     "ALGORITHM": "GP",
-    "DEFAULT_CGP": false,
+    "MUTATION_ONLY_CGP": true,
     "INPUT_COUNT":  6,
     "OUTPUT_COUNT": 2,
 
@@ -16,7 +16,9 @@
     "CHOOSE_THIS_NODE_CHANCE": 0.5,
     "RESULT_CHOOSE_CHANCE": 0.5,
     "MAX_NODE_COUNT": 20,
-    "START_WITH_GOOD_SEED": 0,
+    "START_WITH_GOOD_SEED": false,
+    "GOOD_SEED_PERCENTAGE": 0.2,   
+    
     "OPERATOR_PARAMS": 3,
     "LAYER_COUNT": 5,
     "LAYER_DEPTH": 5,
@@ -46,6 +48,6 @@
 	"EATING_MODE": true,
 
 	"WRITE_TO_FILE": false,
-	"READ_FROM_FILE": true,
+	"READ_FROM_FILE": false,
 	"INPUT_FILE": "GP_gen55_c79njmu3"
 }
