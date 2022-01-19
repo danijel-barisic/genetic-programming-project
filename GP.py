@@ -22,6 +22,7 @@ CHOOSE_THIS_NODE_CHANCE = config["CHOOSE_THIS_NODE_CHANCE"]
 RESULT_CHOOSE_CHANCE = config["RESULT_CHOOSE_CHANCE"]
 MAX_NODE_COUNT = config["MAX_NODE_COUNT"]
 START_WITH_GOOD_SEED = config["START_WITH_GOOD_SEED"]
+GOOD_SEED_PERCENTAGE = config["GOOD_SEED_PERCENTAGE"]
 FLOAT_INT_LIMIT = config["FLOAT_INT_LIMIT"]
 
 class AbsNode():
@@ -352,7 +353,7 @@ class GP(Algorithm):
         population = []
 
         if START_WITH_GOOD_SEED:
-            for _ in range(int(self.population_size * 0.2)):
+            for _ in range(int(self.population_size * GOOD_SEED_PERCENTAGE)):
                 unit = Unit(self.input_count, self.output_count, self, create_tree=False)
 
                 node1 = Leaf(unit)

@@ -17,6 +17,7 @@
     "RESULT_CHOOSE_CHANCE": 0.5,
     "MAX_NODE_COUNT": 20,
     "START_WITH_GOOD_SEED": false,
+    "GOOD_SEED_PERCENTAGE": 0.2,   
     
     "OPERATOR_PARAMS": 3,
     "LAYER_COUNT": 5,
