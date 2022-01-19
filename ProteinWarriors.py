@@ -447,9 +447,6 @@ if __name__ == '__main__':
 	# importing NN when not needed slows the program drastically
 	if ALGORITHM == "NN":
 		from NN import NN
-		EATING_MODE = False
-		INPUT_COUNT = 2
-		OUTPUT_COUNT = 2
 
 	algorithm = eval(ALGORITHM + f"({INPUT_COUNT}, {OUTPUT_COUNT}, {NUMBER_OF_WARRIORS})")
 	angle_decoder = AngleDecoder()

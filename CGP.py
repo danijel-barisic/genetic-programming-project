@@ -20,6 +20,8 @@ B = config["B"]
 FLOAT_INT_LIMIT = config["FLOAT_INT_LIMIT"]
 CONST_LEAF_RANGE = config["CONST_LEAF_RANGE"]
 
+MUTATION_ONLY_CGP = config["MUTATION_ONLY_CGP"]
+
 def get_symbol(i):
     if i == 1:
         return "+"
@@ -184,7 +186,10 @@ class CGP(Algorithm):
         return population
 
     def evolve_population(self, population):
-        return self.algorithm_mutation_only(population)
+        if MUTATION_ONLY_CGP:
+            return self.algorithm_mutation_only(population)
+        else:
+            return self.algorithm_default(population)
 
     def crossover(self, unit1, unit2):
         
@@ -292,29 +297,19 @@ class CGP(Algorithm):
                 curr += 1
 
         population = []
-        adjusted_size = self.population_size
-
-        while adjusted_size % 4 != 0: 
-            adjusted_size -= 1
         
-        added_units_num = self.population_size - adjusted_size
-        upper_population_index = int((3 / 4) * adjusted_size)
-
-        for index in range(upper_population_index, self.population_size):
-
-            units = [None] * 4
-
-            for unit in units:
-
+        counter = 1
+        index = self.population_size - 1 
+        while len(population) < self.population_size:
+            if counter == 4:
+                index -= 1
+                counter = 0
+            else:
                 unit = objects[index][1]
                 self.mutate(unit)
                 population.append(unit)
+                counter += 1
         
-        for _ in range(added_units_num):
-
-            rand_unit = choice(population)
-            population.append(rand_unit)
-
         return population
 
     def save_population(self, population):
