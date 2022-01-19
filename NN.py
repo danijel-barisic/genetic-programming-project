@@ -43,6 +43,21 @@ class Unit:
         return self
 
 
+def convert_nn_format_to_flat_weights(model):
+    result_list = []
+
+    nn_weights = model.get_weights()
+
+    for layer in model.layers:
+        layer_w = layer.get_weights()
+        params = layer_w[0]
+        for param in params:
+            for weight in param:
+                result_list.append(weight)
+
+    return result_list
+
+
 def convert_flat_weights_to_nn_format(flat_weights, input_count, output_count):
     result_list = []
 
@@ -107,6 +122,10 @@ class NN(Algorithm):
                      HIDDEN_COUNT2 * self.output_count
 
         optimizer = ps.single.GlobalBestPSO(n_particles=self.population_size, dimensions=dimensions, options=options)
+
+        for i in range(len(optimizer.swarm.position)):
+            unit = population[i]
+            optimizer.swarm.position[i] = convert_nn_format_to_flat_weights(unit.model)
 
         stats = optimizer.optimize(fitness_func, iters=1000, population=population, )
 
