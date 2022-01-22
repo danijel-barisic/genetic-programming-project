@@ -51,7 +51,9 @@ class WarriorEntity:
 		return self.__dict__.copy()
 
 with open('./config.json') as f:
-	config = json.load(f)
+	config_file = json.load(f)
+	with open(config_file["config"]) as g:
+		config = json.load(g)
 
 # Pygame display values
 DISPLAY_WIDTH  = config["DISPLAY_WIDTH"]

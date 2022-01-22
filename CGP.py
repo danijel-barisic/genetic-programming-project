@@ -6,7 +6,9 @@ import os
 import shutil
 
 with open('./config.json') as f:
-    config = json.load(f)
+	config_file = json.load(f)
+	with open(config_file["config"]) as g:
+		config = json.load(g)
 
 OPERATOR_PARAMS = config["OPERATOR_PARAMS"] # 2 input + 1 output
 MUTATION_CHANCE = config["MUTATION_CHANCE"]

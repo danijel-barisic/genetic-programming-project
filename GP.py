@@ -9,7 +9,9 @@ import os
 import shutil
 
 with open('./config.json') as f:
-    config = json.load(f)
+	config_file = json.load(f)
+	with open(config_file["config"]) as g:
+		config = json.load(g)
 
 LEAF_CHANCE = config["LEAF_CHANCE"]
 CONST_LEAF_CHANCE = config["CONST_LEAF_CHANCE"]
