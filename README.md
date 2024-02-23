@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Projekt
 
 ## Protein Warriors
@@ -19,3 +20,6 @@ Available algorithms are:
 - CGP
 - NN 
 
+=======
+# genetic-programming-project
+>>>>>>> 6727f05dcfbc1cfc9ac20dd47be05dc799ba9653
